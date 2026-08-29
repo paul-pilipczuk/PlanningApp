@@ -14,8 +14,8 @@ enum ReminderFrequency: String, Codable, CaseIterable, Identifiable {
 struct ReminderSettings: Codable, Equatable {
     var isEnabled = false
     var frequency: ReminderFrequency = .daily
-    var hour = 9
-    var minute = 0
+    var hour = Calendar.current.component(.hour, from: Date())
+    var minute = Calendar.current.component(.minute, from: Date())
     var weekday = Calendar.current.component(.weekday, from: Date())
     var repeatsUntilCompleted = true
 
@@ -25,8 +25,8 @@ struct ReminderSettings: Codable, Equatable {
 
     mutating func setTime(_ date: Date) {
         let components = Calendar.current.dateComponents([.hour, .minute], from: date)
-        hour = components.hour ?? 9
-        minute = components.minute ?? 0
+        hour = components.hour ?? Calendar.current.component(.hour, from: Date())
+        minute = components.minute ?? Calendar.current.component(.minute, from: Date())
     }
 }
 

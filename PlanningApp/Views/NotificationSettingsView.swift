@@ -16,7 +16,7 @@ struct NotificationSettingsView: View {
         self.onSave = onSave
         _isEnabled = State(initialValue: task.reminder.isEnabled)
         _frequency = State(initialValue: task.reminder.frequency)
-        _time = State(initialValue: task.reminder.time)
+        _time = State(initialValue: task.reminder.isEnabled ? task.reminder.time : Date())
         _weekday = State(initialValue: task.reminder.weekday)
         _repeatsUntilCompleted = State(initialValue: task.reminder.repeatsUntilCompleted)
     }
