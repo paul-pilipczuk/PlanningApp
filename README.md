@@ -1,8 +1,8 @@
-# PlanningApp
+# Planning
 
 A small, fully offline planning app for iPhone, built in SwiftUI.
 
-PlanningApp is a learning project with a practical goal: create a calm, low-friction task experience that works well for people with different levels of technical confidence and different ways of interacting with their phone. It favors obvious actions, familiar system controls, readable dark-mode presentation, and device-local privacy over feature density.
+Planning is a learning project with a practical goal: create a calm, low-friction task experience that works well for people with different levels of technical confidence and different ways of interacting with their phone. It favors obvious actions, familiar system controls, readable dark-mode presentation, and device-local privacy over feature density.
 
 ## Product principles
 
@@ -23,10 +23,11 @@ This does not claim to solve every accessibility need. It is a foundation intend
 | Enter a task name and tap **Add** | Saves a task on the device |
 | Tap the bubble on the left | Marks the task complete or incomplete |
 | Tap a task name | Opens a rename sheet |
+| Press and hold a task | Lifts it above the list while nearby tasks preview their new positions |
 | Tap the cog on the right | Opens that task’s reminder settings |
 | Enable notifications | Chooses daily or weekly timing, a time of day, and whether to repeat until completion |
 
-Completed tasks use a visible checkmark, strikethrough text, and reduced emphasis. Completing a task cancels its pending reminder. Marking it incomplete schedules the reminder again if it remains enabled.
+Completed tasks use a visible checkmark, strikethrough text, and reduced emphasis. They are collected in a sticky, collapsible **Completed** overlay at the bottom of the list. When expanded, it uses up to half of the display without moving the Tasks list. Completing a task cancels its pending reminder. Marking it incomplete schedules the reminder again if it remains enabled.
 
 ## Privacy and reminders
 
