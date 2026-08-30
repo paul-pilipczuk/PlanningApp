@@ -6,6 +6,12 @@ All notable user-facing changes to this project are documented here.
 
 ### Added
 
+- Add task descriptions and local named task groups.
+- Create a group directly from the new-task or task-details editor.
+- Open a unified task-details editor by tapping a task or its cog button.
+- Delete tasks from task details or by swiping left and choosing Delete.
+- Organize active tasks beneath group headings, with ungrouped tasks under General.
+- Preserve existing saved tasks through a backward-compatible on-device data migration.
 - Reorder tasks by pressing, holding, and dragging them in the list.
 - Collapse completed tasks into a Completed section at the bottom of the list.
 - Keep the Completed section fixed to the bottom of the screen.
@@ -14,6 +20,8 @@ All notable user-facing changes to this project are documented here.
 
 ### Changed
 
+- Make a task’s primary tap area complete it; long-pressing opens task details and dragging reorders it.
+- Keep drag reordering within a task's current group.
 - Rename the user-facing app title to Planning.
 - Start a new reminder’s time picker at the current time.
 - Remove the visible drag placeholder while reordering tasks.

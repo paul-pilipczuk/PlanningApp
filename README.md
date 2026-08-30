@@ -6,7 +6,7 @@ Planning is a learning project with a practical goal: create a calm, low-frictio
 
 ## Product principles
 
-- **Make the next action obvious.** Empty space adds a plan, the left bubble completes it, the task name edits it, and the trailing cog configures reminders.
+- **Make the next action obvious.** Empty space adds a plan, a task tap completes it, a long press opens its details, and the trailing cog provides a direct details route.
 - **Keep the interface small.** The main screen focuses on the user’s current plans rather than menus, accounts, or configuration.
 - **Use familiar iOS patterns.** Sheets, buttons, menus, date pickers, and system icons make the experience easier to learn.
 - **Respect attention.** Reminders are opt-in, local to the device, and can repeat only until the task is finished.
@@ -20,11 +20,11 @@ This does not claim to solve every accessibility need. It is a foundation intend
 | Action | Result |
 | --- | --- |
 | Tap unused space in the plan list | Opens the new-task sheet |
-| Enter a task name and tap **Add** | Saves a task on the device |
-| Tap the bubble on the left | Marks the task complete or incomplete |
-| Tap a task name | Opens a rename sheet |
+| Enter a task title, optional group and description, then tap **Add** | Saves a task on the device |
+| Tap a task | Marks it complete or incomplete |
+| Long-press a task, or tap its cog | Opens task details, including description, group, and reminders |
+| Swipe left on an active task | Replaces its cog with a Delete button |
 | Press and hold a task | Lifts it above the list while nearby tasks preview their new positions |
-| Tap the cog on the right | Opens that task’s reminder settings |
 | Enable notifications | Chooses daily or weekly timing, a time of day, and whether to repeat until completion |
 
 Completed tasks use a visible checkmark, strikethrough text, and reduced emphasis. They are collected in a sticky, collapsible **Completed** overlay at the bottom of the list. When expanded, it uses up to half of the display without moving the Tasks list. Completing a task cancels its pending reminder. Marking it incomplete schedules the reminder again if it remains enabled.
@@ -59,22 +59,20 @@ For a physical iPhone, open the target’s **Signing & Capabilities** tab, selec
 ```text
 PlanningApp/
 ├── Models/
-│   └── TaskItem.swift                 # Task and reminder data
+│   └── TaskItem.swift                 # Task, group, and reminder data
 ├── Services/
 │   ├── NotificationManager.swift      # Local notification scheduling
 │   └── TaskStore.swift                # On-device JSON persistence
 ├── Views/
-│   ├── AddTaskView.swift              # Create-task sheet
-│   ├── NotificationSettingsView.swift # Reminder configuration
-│   ├── RenameTaskView.swift           # Rename-task sheet
+│   ├── AddTaskView.swift              # Unified create/details editor
 │   └── TaskListView.swift             # Main planning screen
 └── PlanningApp.swift                   # App entry point
 ```
 
 Additional project documents:
 
-- `IMPLEMENTATION_PLAN.md` explains the original intentionally lean scope.
-- `SWIFT_CONCEPTS.md` links key SwiftUI concepts to concrete files and lines of code.
+- `InternalDocs/IMPLEMENTATION_PLAN.md` explains the original intentionally lean scope.
+- `InternalDocs/SWIFT_CONCEPTS.md` links key SwiftUI concepts to concrete files and lines of code.
 - `InternalDocs/` is local-only working documentation and is intentionally excluded from Git.
 
 ## Architecture
@@ -105,12 +103,11 @@ Before calling this production-ready, test it with VoiceOver, larger accessibili
 
 The code intentionally leaves room for exploration rather than hiding everything behind frameworks. Good next experiments include:
 
-1. Add deletion with a confirmation and notification cleanup.
-2. Sort completed tasks to the bottom.
-3. Add notes or a due date to `TaskItem`.
-4. Support task categories or filters without losing the simple default screen.
-5. Add unit tests for persistence and notification scheduling decisions.
-6. Test and improve VoiceOver focus order and extra-large Dynamic Type layouts.
+1. Move tasks between groups by dragging (planned for 0.3.0).
+2. Add a due date to `TaskItem`.
+3. Support task filters without losing the simple default screen.
+4. Add unit tests for persistence and notification scheduling decisions.
+5. Test and improve VoiceOver focus order and extra-large Dynamic Type layouts.
 
 ## Working with Git
 
