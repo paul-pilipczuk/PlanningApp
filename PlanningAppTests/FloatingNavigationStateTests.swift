@@ -107,4 +107,38 @@ final class FloatingNavigationStateTests: XCTestCase {
         withExtendedLifetime(subscription) {}
     }
 
+    @MainActor
+    func testHeadingCompactsOnScrollAndExpandsOnlyNearTheTop() {
+        let controller = FloatingNavigationController()
+        XCTAssertFalse(controller.isHeaderCompact)
+        controller.updateScrollOffset(0)
+        controller.updateScrollOffset(20)
+        XCTAssertFalse(controller.isHeaderCompact)
+        controller.updateScrollOffset(36)
+        XCTAssertTrue(controller.isHeaderCompact)
+        controller.expand()
+        XCTAssertTrue(controller.isHeaderCompact)
+        controller.updateScrollOffset(10)
+        XCTAssertTrue(controller.isHeaderCompact)
+        controller.updateScrollOffset(4)
+        XCTAssertFalse(controller.isHeaderCompact)
+    }
+
+    @MainActor
+    func testHeadingPublishesOnlyThresholdChangesAndResetsWithTab() {
+        let controller = FloatingNavigationController()
+        var states: [Bool] = []
+        let subscription = controller.$isHeaderCompact.sink { states.append($0) }
+        for offset in 0...1_000 {
+            controller.updateScrollOffset(CGFloat(offset))
+        }
+        controller.updateScrollOffset(.nan)
+        controller.updateScrollOffset(.infinity)
+        XCTAssertEqual(states, [false, true])
+        controller.reset()
+        controller.reset()
+        XCTAssertEqual(states, [false, true, false])
+        withExtendedLifetime(subscription) {}
+    }
+
 }

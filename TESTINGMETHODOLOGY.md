@@ -105,3 +105,7 @@ The first test suite should establish seams around `TaskStore` persistence and `
 See [the milestone notes](docs/RELEASE_0.4.0.md) for Given/When/Then scenarios, exact validation evidence, and remaining device checks. Tests do not establish comprehensive foundation readiness or verify real notification delivery.
 
 The separate performance follow-up adds a scroll-publication regression, grouped ordering/completion coverage, and a 10,000-task construction benchmark. Timings are comparative evidence, not an absolute CI threshold or a substitute for phone profiling. [Performance notes](docs/PERFORMANCE.md) describe the fixture, configuration, and device comparison.
+
+## 0.4.1 appearance regressions
+
+[The 0.4.1 notes](docs/RELEASE_0.4.1.md) record restored compact headings, the circular inline add control, stable floating-bar bounds during tab changes, and collapse on scrollable Settings content. Tests exercise Completed with the full demo fixture and Settings at larger accessibility text sizes; short/static pages intentionally keep navigation expanded. Heading state is tested for hysteresis and distinct publication so the prior scroll-performance work remains in place.

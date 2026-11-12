@@ -42,10 +42,10 @@ struct TaskListView: View {
                     }
                 }
                 .padding(16)
+                .padding(.bottom, 92)
                 .background(TaskScrollContentReader())
                 .animation(.spring(response: 0.3, dampingFraction: 0.8), value: taskStore.tasks)
             }
-            .contentMargins(.bottom, 92, for: .scrollContent)
             .modifier(TaskScrollObserver { offset in
                 guard draggedTaskID == nil else { return }
                 onScrollOffset(offset)

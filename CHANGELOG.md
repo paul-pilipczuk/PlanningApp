@@ -2,7 +2,21 @@
 
 All notable user-facing changes to this project are documented here.
 
-## [0.4.0] - In development
+## [0.4.1] - 2026-11-11
+
+### Fixed
+
+- Restore large headings transitioning to compact titles while scrolling, and expanding near the top.
+- Restore the circular Add task button, aligned with Active in both heading sizes.
+- Keep floating navigation anchored during tab changes; animate the selection highlight without moving or warping the entire bar.
+- Connect Settings to the same scroll-collapse behavior as Active and Completed when its content overflows.
+- Include bottom content padding in iOS 17 scroll measurements for consistent collapse near the end of a list.
+
+### Kept
+
+- The 0.4.0 performance changes, task gestures, grouping, reminders, persistence, and light/dark appearance choices.
+
+## [0.4.0] - 2026-11-11
 
 ### Added
 

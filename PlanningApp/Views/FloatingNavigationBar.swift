@@ -41,6 +41,7 @@ struct FloatingNavigationBar: View {
                             .fill(Color.primary.opacity(0.10))
                             .frame(width: tabWidth, height: 60)
                             .offset(x: 6 + CGFloat(index) * (tabWidth + 2))
+                            .animation(reduceMotion ? nil : .smooth(duration: 0.28), value: selectedTab)
                             .allowsHitTesting(false)
                             .accessibilityHidden(true)
                     }
@@ -48,16 +49,16 @@ struct FloatingNavigationBar: View {
                 }
             }
             .frame(width: isCollapsed ? 60 : proxy.size.width, height: isCollapsed ? 60 : 72)
-            .modifier(NavigationSurface(opaque: reduceTransparency))
+            .modifier(FloatingControlSurface(opaque: reduceTransparency))
             .shadow(color: .black.opacity(0.18), radius: 16, y: 6)
             .frame(maxHeight: .infinity, alignment: .bottom)
-            .animation(reduceMotion ? nil : .smooth(duration: 0.28), value: selectedTab)
             .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.38, dampingFraction: 0.86), value: isCollapsed)
         }
         // Keep overlay bounds stable while the visible bar changes shape.
         .frame(height: 76)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Navigation")
+        .accessibilityIdentifier("navigation.bar")
     }
 
     private func tabButton(_ tab: PlanningTab) -> some View {
@@ -88,8 +89,9 @@ struct FloatingNavigationBar: View {
     }
 }
 
-private struct NavigationSurface: ViewModifier {
+struct FloatingControlSurface: ViewModifier {
     let opaque: Bool
+    var isInteractive = false
 
     @ViewBuilder
     func body(content: Content) -> some View {
@@ -97,7 +99,11 @@ private struct NavigationSurface: ViewModifier {
             content.background(Color(uiColor: .secondarySystemBackground), in: Capsule())
                 .overlay { Capsule().strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5) }
         } else if #available(iOS 26.0, *) {
-            content.glassEffect(.regular.interactive(), in: Capsule())
+            if isInteractive {
+                content.glassEffect(.regular.interactive(), in: Capsule())
+            } else {
+                content.glassEffect(.regular, in: Capsule())
+            }
         } else {
             content.background(.ultraThinMaterial, in: Capsule())
                 .overlay { Capsule().strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5) }

@@ -4,7 +4,7 @@ This change follows the navigation UX commit `94b9869` and stays separate so pho
 
 ## Changes
 
-- `FloatingNavigationController` keeps scroll history private and publishes only when collapsed state changes. Pixel-by-pixel offsets no longer invalidate the root screen and navigation bar.
+- `FloatingNavigationController` keeps scroll history private and publishes only when collapsed state changes (and, in 0.4.1, when the heading crosses a compact/expanded threshold). Pixel-by-pixel offsets no longer invalidate the root screen and navigation bar.
 - Active-row geometry goes into a reference cache used by drag handling, rather than observable view state. Completed rows do not install drag-frame measurement readers.
 - Task-array animation comparison occurs once at the lazy stack, instead of once per row.
 - Active tasks are partitioned into groups in one pass, preserving group order, task order, General, and empty-group behavior. Drag lookup also avoids building unnecessary intermediate active-task arrays.

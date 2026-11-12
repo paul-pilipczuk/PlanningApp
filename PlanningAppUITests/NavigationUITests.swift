@@ -40,11 +40,18 @@ final class NavigationUITests: XCTestCase {
     }
 
     func testSkippingTabsKeepsSelectionAndHeaderInSync() {
+        let navigation = app.otherElements["navigation.bar"]
+        XCTAssertTrue(navigation.waitForExistence(timeout: 3))
+        let initialFrame = navigation.frame
         for tab in ["settings", "active", "archived", "completed", "settings", "archived", "active"] {
             let button = app.buttons["tab.\(tab)"]
             button.tap()
             XCTAssertTrue(button.isSelected)
             XCTAssertEqual(app.staticTexts["page.title"].label.lowercased(), tab)
+            XCTAssertEqual(navigation.frame.minX, initialFrame.minX, accuracy: 1)
+            XCTAssertEqual(navigation.frame.minY, initialFrame.minY, accuracy: 1)
+            XCTAssertEqual(navigation.frame.width, initialFrame.width, accuracy: 1)
+            XCTAssertEqual(navigation.frame.height, initialFrame.height, accuracy: 1)
         }
         let title = app.staticTexts["page.title"]
         let add = app.buttons["task.add"]
@@ -59,7 +66,10 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(tab.waitForExistence(timeout: 5))
         let list = app.scrollViews["taskList.active"]
         XCTAssertGreaterThan(list.frame.maxY, tab.frame.minY)
+        let largeTitleHeight = app.staticTexts["page.title"].frame.height
         scrollThroughGutter(list)
+        XCTAssertLessThan(app.staticTexts["page.title"].frame.height, largeTitleHeight)
+        XCTAssertLessThan(abs(app.staticTexts["page.title"].frame.midY - app.buttons["task.add"].frame.midY), 20)
         let expand = app.buttons["navigation.expand"]
         XCTAssertTrue(expand.waitForExistence(timeout: 3))
         XCTAssertLessThan(expand.frame.midX, app.frame.width / 3)
@@ -72,8 +82,34 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(tab.waitForExistence(timeout: 3))
         app.buttons["tab.completed"].tap()
         XCTAssertTrue(app.buttons["tab.settings"].exists)
+        let completedTitleHeight = app.staticTexts["page.title"].frame.height
         app.scrollViews["taskList.completed"].swipeUp()
         XCTAssertTrue(expand.waitForExistence(timeout: 3))
+        XCTAssertLessThan(app.staticTexts["page.title"].frame.height, completedTitleHeight)
+        let completedList = app.scrollViews["taskList.completed"]
+        completedList.swipeDown(velocity: .fast)
+        completedList.swipeDown(velocity: .fast)
+        XCTAssertEqual(app.staticTexts["page.title"].frame.height, completedTitleHeight, accuracy: 2)
+        XCTAssertTrue(expand.exists)
+    }
+
+    func testSettingsCollapseWhenContentOverflowsAndArchivedStaysExpanded() {
+        app.terminate()
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        app.buttons["tab.settings"].tap()
+        let largeTitleHeight = app.staticTexts["page.title"].frame.height
+        let settings = app.scrollViews["settings.scroll"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 3))
+        settings.swipeUp()
+        let expand = app.buttons["navigation.expand"]
+        XCTAssertTrue(expand.waitForExistence(timeout: 3))
+        XCTAssertLessThan(app.staticTexts["page.title"].frame.height, largeTitleHeight)
+        expand.tap()
+        app.buttons["tab.archived"].tap()
+        app.swipeUp()
+        XCTAssertTrue(app.buttons["tab.settings"].exists)
+        XCTAssertFalse(expand.exists)
     }
 
     func testTaskCompletionMovesBetweenTabs() {

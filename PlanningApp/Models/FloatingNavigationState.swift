@@ -59,10 +59,19 @@ struct FloatingNavigationState {
 @MainActor
 final class FloatingNavigationController: ObservableObject {
     @Published private(set) var isCollapsed = false
+    @Published private(set) var isHeaderCompact = false
     private var state = FloatingNavigationState()
 
     func updateScrollOffset(_ offset: CGFloat) {
+        guard offset.isFinite else { return }
         state.updateScrollOffset(offset)
+        // Separate thresholds prevent the header's height change from causing
+        // repeated compact/expanded transitions near the top of the list.
+        if !isHeaderCompact && offset >= 36 {
+            isHeaderCompact = true
+        } else if isHeaderCompact && offset <= 4 {
+            isHeaderCompact = false
+        }
         publishVisibleChange()
     }
 
@@ -73,6 +82,7 @@ final class FloatingNavigationController: ObservableObject {
 
     func reset() {
         state.reset()
+        if isHeaderCompact { isHeaderCompact = false }
         publishVisibleChange()
     }
 
