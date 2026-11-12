@@ -44,10 +44,21 @@ final class TaskStore: ObservableObject {
     var completedTasks: [TaskItem] { tasks.filter(\.isCompleted) }
 
     var activeSections: [TaskSection] {
-        let named = groups.map { group in
-            TaskSection(group: group, tasks: incompleteTasks.filter { $0.groupID == group.id })
+        var grouped: [UUID: [TaskItem]] = [:]
+        grouped.reserveCapacity(groups.count)
+        var general: [TaskItem] = []
+        // Partition once, preserving task order, rather than filtering the full
+        // task array twice for every group whenever SwiftUI evaluates the list.
+        for task in tasks where !task.isCompleted {
+            if let groupID = task.groupID {
+                grouped[groupID, default: []].append(task)
+            } else {
+                general.append(task)
+            }
         }
-        let general = incompleteTasks.filter { $0.groupID == nil }
+        let named = groups.map { group in
+            TaskSection(group: group, tasks: grouped[group.id] ?? [])
+        }
         return named + (general.isEmpty ? [] : [TaskSection(group: nil, tasks: general)])
     }
 

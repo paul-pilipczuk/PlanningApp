@@ -59,3 +59,9 @@ The UX follow-up also makes the task viewport extend behind navigation and reduc
 Regression testing caught oversized accessibility/hit bounds from a matched-geometry background after switching through Settings. A single decorative capsule now moves behind stable tab buttons; it does not participate in hit testing or accessibility.
 
 UX validation: the iOS 17.2 full 20-test run passed completed-row scrolling/collapse, task completion, details, and 15 unit tests, while exposing two navigation regressions. After replacing the matched background, both failing navigation tests passed on iOS 17.2 (`/tmp/planning-ux-regression-tests.xcresult`). The earlier shell/header changes also passed the 20-test run on iOS 26.5 before the viewport change. Physical-device animation and rapid-tap feel remain to be tested.
+
+## Separate optimization follow-up
+
+The scroll controller now publishes only visible collapse changes. Drag-frame measurements are kept outside observable UI state, Completed omits those measurements, task-array animation comparison moves to the stack, and grouping uses a single pass. See [performance evidence and phone comparison steps](PERFORMANCE.md). This preserves the UX commit as a separate comparison point and does not claim measured phone frame-rate improvements.
+
+Optimization validation: 23 tests passed on iOS 26.5 and 24 on iOS 17.2, including the added real drag/reorder scenario. The Release build for the iPhone device SDK passed with signing disabled. The synthetic grouping benchmark fell from 0.525 seconds to 0.007 seconds for five reads; see the performance notes for configuration and limits. Physical-device smoothness remains to be assessed locally.

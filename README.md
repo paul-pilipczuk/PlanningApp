@@ -101,6 +101,8 @@ xcodebuild test -project PlanningApp.xcodeproj -scheme PlanningApp \
 
 Use a simulator name installed on your Mac. [The 0.4.0 milestone notes](docs/RELEASE_0.4.0.md) record scope, scenarios, and validation limitations.
 
+See [performance notes and the phone comparison steps](docs/PERFORMANCE.md) for the separate optimization follow-up.
+
 Additional project documents:
 
 - `TESTINGMETHODOLOGY.md` defines the tests-first, TDD, BDD, and release-validation approach.

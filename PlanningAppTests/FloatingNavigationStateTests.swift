@@ -84,4 +84,27 @@ final class FloatingNavigationStateTests: XCTestCase {
         XCTAssertEqual(PlanningTab.allCases, [.active, .completed, .archived, .settings])
         XCTAssertEqual(PlanningTab.settings.systemImage, "gearshape")
     }
+
+    @MainActor
+    func testControllerPublishesOnlyVisibleCollapseChanges() {
+        let controller = FloatingNavigationController()
+        var states: [Bool] = []
+        let subscription = controller.$isCollapsed.sink { states.append($0) }
+
+        for offset in 0...1_000 {
+            controller.updateScrollOffset(CGFloat(offset))
+        }
+        XCTAssertEqual(states, [false, true])
+
+        controller.expand()
+        controller.updateScrollOffset(1_000)
+        controller.updateScrollOffset(1_035)
+        XCTAssertEqual(states, [false, true, false])
+        controller.updateScrollOffset(1_036)
+        controller.reset()
+        controller.reset()
+        XCTAssertEqual(states, [false, true, false, true, false])
+        withExtendedLifetime(subscription) {}
+    }
+
 }

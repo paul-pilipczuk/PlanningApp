@@ -14,7 +14,7 @@ struct TaskListView: View {
     @State private var dragTranslation: CGSize = .zero
     @State private var hasPendingReorder = false
     @State private var reorderFeedback = 0
-    @State private var taskFrames: [UUID: CGRect] = [:]
+    @State private var taskFrames = TaskFrameCache()
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -43,6 +43,7 @@ struct TaskListView: View {
                 }
                 .padding(16)
                 .background(TaskScrollContentReader())
+                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: taskStore.tasks)
             }
             .contentMargins(.bottom, 92, for: .scrollContent)
             .modifier(TaskScrollObserver { offset in
@@ -55,12 +56,12 @@ struct TaskListView: View {
         }
         .background(Color(uiColor: .systemBackground))
         .coordinateSpace(name: "taskList")
-        .onPreferenceChange(TaskFramePreferenceKey.self) { taskFrames = $0 }
+        .onPreferenceChange(TaskFramePreferenceKey.self) { taskFrames.frames = $0 }
         .sensoryFeedback(.selection, trigger: reorderFeedback)
         .onChange(of: tab) { _, _ in
             endDragging()
             taskShowingDeleteID = nil
-            taskFrames = [:]
+            taskFrames.frames = [:]
         }
         .sheet(isPresented: $isAddingTask) { editor(task: nil) }
         .sheet(item: $taskToEdit) { editor(task: $0) }
@@ -93,16 +94,17 @@ struct TaskListView: View {
                     dragTranslation = drag.translation
                     updateTaskOrder(for: drag.location)
                 }, onDragEnded: { _ in endDragging() })
-            .background(taskFrameReader(for: task.id))
+            .background {
+                if tab == .active { taskFrameReader(for: task.id) }
+            }
             .opacity(draggedTaskID == task.id ? 0 : 1)
             .simultaneousGesture(swipeGesture(for: task))
-            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: taskStore.tasks)
     }
 
     private func taskFrameReader(for taskID: UUID) -> some View { GeometryReader { proxy in Color.clear.preference(key: TaskFramePreferenceKey.self, value: [taskID: proxy.frame(in: .named("taskList"))]) } }
 
     @ViewBuilder private var dragPreview: some View {
-        if let draggedTaskID, let task = taskStore.incompleteTasks.first(where: { $0.id == draggedTaskID }), let dragPreviewFrame {
+        if let draggedTaskID, let task = taskStore.tasks.first(where: { $0.id == draggedTaskID && !$0.isCompleted }), let dragPreviewFrame {
             TaskRow(task: task, isDeleteVisible: false, onComplete: {}, onTaskTap: {}, onLongPress: {}, onConfigure: {}, onDelete: {}, onDragChanged: { _ in }, onDragEnded: { _ in })
                 .frame(width: dragPreviewFrame.width).scaleEffect(1.035).shadow(color: .black.opacity(0.45), radius: 14, y: 8)
                 .offset(x: dragPreviewFrame.minX, y: dragPreviewFrame.minY + dragTranslation.height).allowsHitTesting(false).accessibilityHidden(true)
@@ -117,21 +119,21 @@ struct TaskListView: View {
         }
     }
 
-    private func beginDragging(_ task: TaskItem) { guard draggedTaskID == nil, let frame = taskFrames[task.id] else { return }; withAnimation(.spring(response: 0.24, dampingFraction: 0.8)) { draggedTaskID = task.id; dragPreviewFrame = frame }; hasPendingReorder = false }
+    private func beginDragging(_ task: TaskItem) { guard draggedTaskID == nil, let frame = taskFrames.frames[task.id] else { return }; withAnimation(.spring(response: 0.24, dampingFraction: 0.8)) { draggedTaskID = task.id; dragPreviewFrame = frame }; hasPendingReorder = false }
     private func updateTaskOrder(for location: CGPoint) {
-        guard let draggedTaskID, let dragged = taskStore.incompleteTasks.first(where: { $0.id == draggedTaskID }) else { return }
-        let candidates = taskStore.incompleteTasks.filter { $0.groupID == dragged.groupID }
+        guard let draggedTaskID, let dragged = taskStore.tasks.first(where: { $0.id == draggedTaskID && !$0.isCompleted }) else { return }
+        let candidates = taskStore.tasks.filter { !$0.isCompleted && $0.groupID == dragged.groupID }
         guard let currentIndex = candidates.firstIndex(where: { $0.id == draggedTaskID }) else { return }
 
         if currentIndex > 0,
-           let previousFrame = taskFrames[candidates[currentIndex - 1].id],
+           let previousFrame = taskFrames.frames[candidates[currentIndex - 1].id],
            location.y < previousFrame.midY {
             if taskStore.move(taskID: draggedTaskID, before: candidates[currentIndex - 1].id, persist: false) {
                 hasPendingReorder = true
                 reorderFeedback += 1
             }
         } else if currentIndex < candidates.count - 1,
-                  let nextFrame = taskFrames[candidates[currentIndex + 1].id],
+                  let nextFrame = taskFrames.frames[candidates[currentIndex + 1].id],
                   location.y > nextFrame.midY {
             let moved: Bool
             if currentIndex + 1 == candidates.count - 1 {
@@ -166,6 +168,12 @@ struct TaskListView: View {
         .frame(maxWidth: .infinity, minHeight: 230)
     }
 
+}
+
+/// Geometry is an input to drag handling, not rendered state. Keep measurements
+/// without invalidating the entire list every time the scroll position changes.
+private final class TaskFrameCache {
+    var frames: [UUID: CGRect] = [:]
 }
 
 private struct TaskFramePreferenceKey: PreferenceKey { static var defaultValue: [UUID: CGRect] = [:]; static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) { value.merge(nextValue(), uniquingKeysWith: { _, new in new }) } }

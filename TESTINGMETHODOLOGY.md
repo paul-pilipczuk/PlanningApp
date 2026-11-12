@@ -103,3 +103,5 @@ The first test suite should establish seams around `TaskStore` persistence and `
 `PlanningAppTests` covers collapse thresholds, jitter, overscroll, explicit expansion, tab resets, invalid measurements, fixture integrity, memory-only demo edits, and persisted completion with temporary storage. `PlanningAppUITests` covers all destinations, scroll collapse/expansion, appearance persistence, completion/reopening, task details, and task creation presentation. UI tests launch with `-sample-data` and use the list margin to preserve the current row-drag interaction.
 
 See [the milestone notes](docs/RELEASE_0.4.0.md) for Given/When/Then scenarios, exact validation evidence, and remaining device checks. Tests do not establish comprehensive foundation readiness or verify real notification delivery.
+
+The separate performance follow-up adds a scroll-publication regression, grouped ordering/completion coverage, and a 10,000-task construction benchmark. Timings are comparative evidence, not an absolute CI threshold or a substitute for phone profiling. [Performance notes](docs/PERFORMANCE.md) describe the fixture, configuration, and device comparison.

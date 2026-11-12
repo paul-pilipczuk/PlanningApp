@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 enum PlanningTab: String, CaseIterable, Identifiable {
@@ -51,5 +52,32 @@ struct FloatingNavigationState {
         isCollapsed = false
         lastOffset = nil
         downwardStart = nil
+    }
+}
+
+/// Publish only visible navigation changes; pixel-by-pixel scroll history stays private.
+@MainActor
+final class FloatingNavigationController: ObservableObject {
+    @Published private(set) var isCollapsed = false
+    private var state = FloatingNavigationState()
+
+    func updateScrollOffset(_ offset: CGFloat) {
+        state.updateScrollOffset(offset)
+        publishVisibleChange()
+    }
+
+    func expand() {
+        state.expand()
+        publishVisibleChange()
+    }
+
+    func reset() {
+        state.reset()
+        publishVisibleChange()
+    }
+
+    private func publishVisibleChange() {
+        guard isCollapsed != state.isCollapsed else { return }
+        isCollapsed = state.isCollapsed
     }
 }

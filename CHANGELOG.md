@@ -16,6 +16,9 @@ All notable user-facing changes to this project are documented here.
 
 ### Changed
 
+- Reduce scrolling-related root/list updates and task-array animation comparisons.
+- Build grouped active lists in one pass, with a repeatable large-data benchmark and ordering regression tests.
+
 - Animate the selected highlight and screen changes consistently across all four tabs, including nonadjacent selections.
 - Align the Add task plus button with the large Active heading.
 - Let tasks use the space behind the floating bar, with end padding to reveal the last task.

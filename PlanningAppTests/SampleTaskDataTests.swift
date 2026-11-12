@@ -60,4 +60,42 @@ final class SampleTaskDataTests: XCTestCase {
         XCTAssertEqual(reopened.completedTasks.map(\.id), [task.id])
         XCTAssertEqual(reopened.tasks.first?.description, "Details")
     }
+
+    func testGroupedListsKeepOrderAcrossCompletionAndReordering() {
+        let group = TaskGroup(name: "Work")
+        let empty = TaskGroup(name: "Empty")
+        let first = TaskItem(title: "First", groupID: group.id)
+        let second = TaskItem(title: "Second", groupID: group.id)
+        let general = TaskItem(title: "General task")
+        let completed = TaskItem(title: "Finished", groupID: group.id, isCompleted: true)
+        let store = TaskStore(sampleData: PlanningData(tasks: [second, completed, general, first], groups: [group, empty]))
+
+        XCTAssertEqual(store.activeSections.map(\.title), ["Work", "Empty", "General"])
+        XCTAssertEqual(store.activeSections[0].tasks.map(\.id), [second.id, first.id])
+        XCTAssertTrue(store.activeSections[1].tasks.isEmpty)
+        XCTAssertEqual(store.activeSections[2].tasks.map(\.id), [general.id])
+        XCTAssertTrue(store.move(taskID: first.id, before: second.id, persist: false))
+        XCTAssertEqual(store.activeSections[0].tasks.map(\.id), [first.id, second.id])
+        store.toggleCompletion(for: first.id)
+        XCTAssertEqual(store.activeSections[0].tasks.map(\.id), [second.id])
+        store.toggleCompletion(for: first.id)
+        XCTAssertEqual(store.activeSections[0].tasks.map(\.id), [first.id, second.id])
+    }
+
+    func testGroupedListConstructionPerformance() {
+        let groups = (0..<100).map { TaskGroup(name: "Group \($0)") }
+        let reminder = ReminderSettings(hour: 9, minute: 0, weekday: 2)
+        let tasks = (0..<10_000).map { index in
+            TaskItem(title: "Task \(index)",
+                     groupID: index.isMultiple(of: 10) ? nil : groups[index % groups.count].id,
+                     isCompleted: index.isMultiple(of: 4), reminder: reminder)
+        }
+        let store = TaskStore(sampleData: PlanningData(tasks: tasks, groups: groups))
+        measure {
+            for _ in 0..<5 {
+                XCTAssertEqual(store.activeSections.reduce(0) { $0 + $1.tasks.count }, 7_500)
+            }
+        }
+    }
+
 }

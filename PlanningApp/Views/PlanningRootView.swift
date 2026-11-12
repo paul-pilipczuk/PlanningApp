@@ -4,7 +4,7 @@ struct PlanningRootView: View {
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedTab: PlanningTab = .active
-    @State private var navigation = FloatingNavigationState()
+    @StateObject private var navigation = FloatingNavigationController()
     @State private var isAddingTask = false
 
     var body: some View {

@@ -89,6 +89,19 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(task.waitForExistence(timeout: 3))
     }
 
+    func testActiveTaskDragStillReordersWithoutCollapsingNavigation() {
+        let first = app.buttons["Complete Plan the week"]
+        let second = app.buttons["Complete Review the project notes"]
+        XCTAssertTrue(first.waitForExistence(timeout: 5))
+        XCTAssertLessThan(first.frame.midY, second.frame.midY)
+        let start = first.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let end = second.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9))
+        start.press(forDuration: 0.15, thenDragTo: end)
+        XCTAssertGreaterThan(first.frame.midY, second.frame.midY)
+        XCTAssertTrue(app.buttons["tab.active"].exists)
+        XCTAssertFalse(app.buttons["navigation.expand"].exists)
+    }
+
     func testTaskDetailsAndCreationRemainAvailable() {
         app.buttons["Details for Plan the week"].tap()
         XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))
