@@ -2,7 +2,27 @@
 
 All notable user-facing changes to this project are documented here.
 
-## [Unreleased]
+## [0.4.0] - In development
+
+### Added
+
+- Four floating navigation destinations: Active, Completed, Archived, and Settings.
+- Downward scrolling collapses navigation into a circle at the bottom left; tapping it expands the bar.
+- Archived placeholder with “Coming soon”.
+- Persistent System, Light, and Dark appearance settings, with Dark as the initial default.
+- An isolated Debug demo scheme with 24 active and 24 completed JSON sample tasks.
+- Unit and UI test targets for navigation, sample-data isolation, appearance, and task flows.
+- A visible Add task toolbar action alongside blank-space creation.
+
+### Changed
+
+- Replace the Completed drawer with its own full list destination.
+- Preserve the current task scrolling and drag interactions for a later UX iteration.
+- Adapt the existing rounded task rows to both light and dark appearance.
+- Keep the bottom inset fixed as navigation collapses and support Reduce Motion, Reduce Transparency, and VoiceOver navigation.
+- Require Xcode 26 to compile the guarded glass implementation; retain iOS 17 as the deployment target.
+
+## [Unreleased prior foundation work]
 
 ### Added
 

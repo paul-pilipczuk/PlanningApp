@@ -1,0 +1,735 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "id": "d33a1736-b8e2-5896-b275-87a5c479bf28",
+      "title": "Plan the week",
+      "description": "A little space to think ahead.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "00195b06-c96d-51b2-b39e-8189c8f8e2dc",
+      "title": "Review the project notes",
+      "description": "Keep it simple and take the next step.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "06e93033-2c8f-593c-b399-85ba56abe997",
+      "title": "Prepare the next release",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "99d53fd4-4a72-5e0d-8f6a-2218c09d5459",
+      "title": "Write a short project update",
+      "description": "A little space to think ahead.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "efeb7d70-bc57-5b71-9131-bfb3d8860a1e",
+      "title": "Sketch the next idea",
+      "description": "Keep it simple and take the next step.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "3afbb3d4-64c8-51de-9002-05a45ab75f30",
+      "title": "Organize the workspace",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "0c31d58f-7760-5068-9399-01e828db5eda",
+      "title": "Read a chapter",
+      "description": "A little space to think ahead.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "a7e99e6d-749b-5d0d-8f6c-ddc629531fb6",
+      "title": "Book a checkup",
+      "description": "Keep it simple and take the next step.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "4987edfd-aefe-5670-bf2d-f7a8300da641",
+      "title": "Plan the weekend",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "7afb6777-40d1-5fda-9aa3-c3bf83e9435e",
+      "title": "Try a new recipe",
+      "description": "A little space to think ahead.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "22253874-de99-5f82-94db-e7cb2d3963e5",
+      "title": "Go for a walk",
+      "description": "Keep it simple and take the next step.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "7e2e4cb1-755d-5b65-bd3d-18ccf75d8c4e",
+      "title": "Review the budget",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "8b87b439-cece-565b-a67d-6d6153829232",
+      "title": "Sort the reading list",
+      "description": "A little space to think ahead.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "eb804ed5-c1c6-5806-8bb4-502b0640fc0b",
+      "title": "Back up important files",
+      "description": "Keep it simple and take the next step.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "fe303ecb-56a7-573f-91dd-1e0612b6fa80",
+      "title": "Tidy the desk",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "dc9bb73f-19e1-541c-b98d-cccc4bc01406",
+      "title": "Call a friend",
+      "description": "A little space to think ahead.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "734fd1c3-0b1f-5040-977e-1d65e032c236",
+      "title": "Update the shopping list",
+      "description": "Keep it simple and take the next step.",
+      "groupID": null,
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "07fdde5d-a8eb-55f8-9297-69052140fbbf",
+      "title": "Choose the next book",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": null,
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "8b2ff536-4f39-5e36-91e4-71ea3b3898cb",
+      "title": "Water the plants",
+      "description": "A little space to think ahead.",
+      "groupID": null,
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "6a2ea13b-120f-5b6e-8b17-7cdb266343ab",
+      "title": "Plan a day trip",
+      "description": "Keep it simple and take the next step.",
+      "groupID": null,
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "48c9c9b2-949a-57de-abd4-19906edacc6c",
+      "title": "Clear the inbox",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": null,
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "a2d838fb-fcce-5714-be4d-ba7cd30187d3",
+      "title": "Make time for a break",
+      "description": "A little space to think ahead.",
+      "groupID": null,
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "5bac0e23-02b3-5de1-8876-ff102a24b43f",
+      "title": "Review monthly goals",
+      "description": "Keep it simple and take the next step.",
+      "groupID": null,
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "5c6b665e-36fe-528e-9927-647fe3835f88",
+      "title": "Schedule a focus session",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": null,
+      "isCompleted": false,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "e98338db-39bc-51a8-9ffe-42894f82ea94",
+      "title": "Set up the planning app",
+      "description": "A little space to think ahead.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "8d8820d9-b97b-58db-b777-0675dde137b1",
+      "title": "Make a morning routine",
+      "description": "Keep it simple and take the next step.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "0582da63-8284-5835-bfde-9626901644b7",
+      "title": "Finish the first draft",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "a48675c0-414a-5f32-911b-8646bee5219a",
+      "title": "Send the meeting notes",
+      "description": "A little space to think ahead.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "6b57931b-b2be-5b90-aef0-bbd84c3a33d5",
+      "title": "Review last week",
+      "description": "Keep it simple and take the next step.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "d62aa6f8-7efc-50bb-a5ed-ea53f064a96c",
+      "title": "Prepare the shopping list",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "afac0ac7-ed42-590f-9027-d85b4f9ea6de",
+      "title": "Take a lunch break",
+      "description": "A little space to think ahead.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "9b64e735-8011-5b14-a8cf-88bdc691e66f",
+      "title": "Organize the downloads",
+      "description": "Keep it simple and take the next step.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "fca5c77f-150f-53e8-bb60-f6390215c8a1",
+      "title": "Choose a project name",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "8e1d0494-1eb8-5275-9659-6ae6a07f97c9",
+      "title": "Read the design notes",
+      "description": "A little space to think ahead.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "77deed31-ac21-5ee2-a46a-cbda6f9cea3f",
+      "title": "Save the reference links",
+      "description": "Keep it simple and take the next step.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "7aff40dd-1356-54d7-9427-f15085d19254",
+      "title": "Clean the kitchen",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "9c9c065a-6ef5-5f89-9a7e-db630592f79c",
+      "title": "Book the tickets",
+      "description": "A little space to think ahead.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "24be936e-3970-56d5-990c-3bc71eb34b18",
+      "title": "Reply to the invitation",
+      "description": "Keep it simple and take the next step.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "aecc6e09-5531-5573-8827-e7e7c0c101a9",
+      "title": "Pick up the parcel",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "44d9ee6c-3af9-5e2b-9c3a-9bf06846b912",
+      "title": "Finish the checklist",
+      "description": "A little space to think ahead.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "326c23fa-5748-5475-a61a-6416aef8f60b",
+      "title": "Plan the next milestone",
+      "description": "Keep it simple and take the next step.",
+      "groupID": null,
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "62909101-80a9-5b13-8f5b-e1b4b0110837",
+      "title": "Charge the headphones",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": null,
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "d2bd53dd-209f-5f96-9925-fb5578ef7817",
+      "title": "Sort the photos",
+      "description": "A little space to think ahead.",
+      "groupID": null,
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "e9bc1821-fe66-5950-bf34-2231aeac8970",
+      "title": "Send the thank-you note",
+      "description": "Keep it simple and take the next step.",
+      "groupID": null,
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "44fed3ea-f481-5644-a88a-079916954964",
+      "title": "Check the calendar",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": null,
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "91e3a54c-5422-5c05-8f44-d9247a54a88f",
+      "title": "Update the project outline",
+      "description": "A little space to think ahead.",
+      "groupID": null,
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "3ccd9ffb-c8b5-5370-b253-aacb0383f301",
+      "title": "Complete a workout",
+      "description": "Keep it simple and take the next step.",
+      "groupID": null,
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "fa6453ac-929f-563b-945e-6525ffa7b9f6",
+      "title": "Prepare for tomorrow",
+      "description": "Sample plan \u2014 edit freely in this demo.",
+      "groupID": null,
+      "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "name": "This week"
+    },
+    {
+      "id": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "name": "Personal"
+    }
+  ]
+}

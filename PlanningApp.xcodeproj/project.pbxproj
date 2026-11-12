@@ -15,6 +15,17 @@
 		A10000000000000000000006 /* AddTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* AddTaskView.swift */; };
 		A10000000000000000000007 /* RenameTaskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* RenameTaskView.swift */; };
 		A10000000000000000000008 /* NotificationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* NotificationSettingsView.swift */; };
+		A10000000000000000000020 = {isa = PBXBuildFile; fileRef = A20000000000000000000020; };
+		A10000000000000000000021 = {isa = PBXBuildFile; fileRef = A20000000000000000000021; };
+		A10000000000000000000022 = {isa = PBXBuildFile; fileRef = A20000000000000000000022; };
+		A10000000000000000000023 = {isa = PBXBuildFile; fileRef = A20000000000000000000023; };
+		A10000000000000000000024 = {isa = PBXBuildFile; fileRef = A20000000000000000000024; };
+		A10000000000000000000025 = {isa = PBXBuildFile; fileRef = A20000000000000000000025; };
+		A10000000000000000000026 = {isa = PBXBuildFile; fileRef = A20000000000000000000026; };
+		A10000000000000000000027 = {isa = PBXBuildFile; fileRef = A20000000000000000000027; };
+		B10000000000000000000120 = {isa = PBXBuildFile; fileRef = B10000000000000000000020; };
+		B10000000000000000000121 = {isa = PBXBuildFile; fileRef = B10000000000000000000021; };
+		B20000000000000000000120 = {isa = PBXBuildFile; fileRef = B20000000000000000000020; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +38,19 @@
 		A20000000000000000000007 /* RenameTaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenameTaskView.swift; sourceTree = "<group>"; };
 		A20000000000000000000008 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
 		A20000000000000000000009 /* PlanningApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlanningApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000020 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingNavigationState.swift; sourceTree = "<group>"; };
+		A20000000000000000000021 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAppearance.swift; sourceTree = "<group>"; };
+		A20000000000000000000022 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanningRootView.swift; sourceTree = "<group>"; };
+		A20000000000000000000023 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingNavigationBar.swift; sourceTree = "<group>"; };
+		A20000000000000000000024 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsView.swift; sourceTree = "<group>"; };
+		A20000000000000000000025 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskScrollObserver.swift; sourceTree = "<group>"; };
+		A20000000000000000000026 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleTaskData.swift; sourceTree = "<group>"; };
+		A20000000000000000000027 = {isa = PBXFileReference; lastKnownFileType = text.json; path = SampleTasks.json; sourceTree = "<group>"; };
+		B10000000000000000000020 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingNavigationStateTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000021 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleTaskDataTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000002 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = PlanningAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B20000000000000000000020 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationUITests.swift; sourceTree = "<group>"; };
+		B20000000000000000000002 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = PlanningAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -44,6 +68,8 @@
 			isa = PBXGroup;
 			children = (
 				A40000000000000000000002 /* PlanningApp */,
+				B20000000000000000000009,
+				B10000000000000000000009,
 				A40000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -52,6 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000001 /* PlanningApp.swift */,
+				A40000000000000000000007 /* Resources */,
 				A40000000000000000000004 /* Models */,
 				A40000000000000000000005 /* Services */,
 				A40000000000000000000006 /* Views */,
@@ -63,6 +90,8 @@
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000009 /* PlanningApp.app */,
+				B20000000000000000000002,
+				B10000000000000000000002,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +99,8 @@
 		A40000000000000000000004 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				A20000000000000000000021 /* AppAppearance.swift */,
+				A20000000000000000000020 /* FloatingNavigationState.swift */,
 				A20000000000000000000002 /* TaskItem.swift */,
 			);
 			path = Models;
@@ -78,6 +109,7 @@
 		A40000000000000000000005 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				A20000000000000000000026 /* SampleTaskData.swift */,
 				A20000000000000000000003 /* NotificationManager.swift */,
 				A20000000000000000000004 /* TaskStore.swift */,
 			);
@@ -87,6 +119,10 @@
 		A40000000000000000000006 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				A20000000000000000000025 /* TaskScrollObserver.swift */,
+				A20000000000000000000024 /* AppSettingsView.swift */,
+				A20000000000000000000023 /* FloatingNavigationBar.swift */,
+				A20000000000000000000022 /* PlanningRootView.swift */,
 				A20000000000000000000005 /* TaskListView.swift */,
 				A20000000000000000000006 /* AddTaskView.swift */,
 				A20000000000000000000007 /* RenameTaskView.swift */,
@@ -95,6 +131,9 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		B10000000000000000000009 = {isa = PBXGroup; children = (B10000000000000000000020,B10000000000000000000021,); path = PlanningAppTests; sourceTree = "<group>"; };
+		B20000000000000000000009 = {isa = PBXGroup; children = (B20000000000000000000020,); path = PlanningAppUITests; sourceTree = "<group>"; };
+		A40000000000000000000007 = {isa = PBXGroup; children = (A20000000000000000000027,); path = Resources; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -115,6 +154,8 @@
 			productReference = A20000000000000000000009 /* PlanningApp.app */;
 			productType = "com.apple.product-type.application";
 		};
+		B10000000000000000000001 = {isa = PBXNativeTarget; buildConfigurationList = B10000000000000000000004; buildPhases = (B10000000000000000000003,); buildRules = (); dependencies = (B10000000000000000000007,); name = PlanningAppTests; productName = PlanningAppTests; productReference = B10000000000000000000002; productType = "com.apple.product-type.bundle.unit-test"; };
+		B20000000000000000000001 = {isa = PBXNativeTarget; buildConfigurationList = B20000000000000000000004; buildPhases = (B20000000000000000000003,); buildRules = (); dependencies = (B20000000000000000000007,); name = PlanningAppUITests; productName = PlanningAppUITests; productReference = B20000000000000000000002; productType = "com.apple.product-type.bundle.ui-testing"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -144,6 +185,8 @@
 			projectRoot = "";
 			targets = (
 				A50000000000000000000001 /* PlanningApp */,
+				B20000000000000000000001,
+				B10000000000000000000001,
 			);
 		};
 /* End PBXProject section */
@@ -153,6 +196,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A10000000000000000000027 /* SampleTasks.json */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -163,6 +207,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A10000000000000000000026 /* SampleTaskData.swift */,
+				A10000000000000000000025 /* TaskScrollObserver.swift */,
+				A10000000000000000000024 /* AppSettingsView.swift */,
+				A10000000000000000000023 /* FloatingNavigationBar.swift */,
+				A10000000000000000000022 /* PlanningRootView.swift */,
+				A10000000000000000000021 /* AppAppearance.swift */,
+				A10000000000000000000020 /* FloatingNavigationState.swift */,
 				A10000000000000000000001 /* PlanningApp.swift in Sources */,
 				A10000000000000000000002 /* TaskItem.swift in Sources */,
 				A10000000000000000000003 /* NotificationManager.swift in Sources */,
@@ -174,6 +225,8 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B10000000000000000000003 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B10000000000000000000120,B10000000000000000000121,); runOnlyForDeploymentPostprocessing = 0; };
+		B20000000000000000000003 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B20000000000000000000120,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -190,6 +243,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
@@ -234,7 +288,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.local.PlanningApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -263,7 +317,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.local.PlanningApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -274,6 +328,10 @@
 			};
 			name = Release;
 		};
+		B10000000000000000000005 = {isa = XCBuildConfiguration; buildSettings = {GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; SDKROOT = iphoneos; PRODUCT_BUNDLE_IDENTIFIER = com.local.PlanningAppTests; PRODUCT_NAME = "$(TARGET_NAME)"; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = T5G829UR2U; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PlanningApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PlanningApp"; BUNDLE_LOADER = "$(TEST_HOST)";}; name = Debug; };
+		B10000000000000000000006 = {isa = XCBuildConfiguration; buildSettings = {GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; SDKROOT = iphoneos; PRODUCT_BUNDLE_IDENTIFIER = com.local.PlanningAppTests; PRODUCT_NAME = "$(TARGET_NAME)"; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = T5G829UR2U; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PlanningApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PlanningApp"; BUNDLE_LOADER = "$(TEST_HOST)";}; name = Release; };
+		B20000000000000000000005 = {isa = XCBuildConfiguration; buildSettings = {GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; SDKROOT = iphoneos; PRODUCT_BUNDLE_IDENTIFIER = com.local.PlanningAppUITests; PRODUCT_NAME = "$(TARGET_NAME)"; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = T5G829UR2U; TEST_TARGET_NAME = PlanningApp;}; name = Debug; };
+		B20000000000000000000006 = {isa = XCBuildConfiguration; buildSettings = {GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; SDKROOT = iphoneos; PRODUCT_BUNDLE_IDENTIFIER = com.local.PlanningAppUITests; PRODUCT_NAME = "$(TARGET_NAME)"; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = T5G829UR2U; TEST_TARGET_NAME = PlanningApp;}; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -295,7 +353,17 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		B10000000000000000000004 = {isa = XCConfigurationList; buildConfigurations = (B10000000000000000000005,B10000000000000000000006,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		B20000000000000000000004 = {isa = XCConfigurationList; buildConfigurations = (B20000000000000000000005,B20000000000000000000006,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
+/* Begin PBXContainerItemProxy section */
+		B10000000000000000000008 = {isa = PBXContainerItemProxy; containerPortal = A70000000000000000000001; proxyType = 1; remoteGlobalIDString = A50000000000000000000001; remoteInfo = PlanningApp; };
+		B20000000000000000000008 = {isa = PBXContainerItemProxy; containerPortal = A70000000000000000000001; proxyType = 1; remoteGlobalIDString = A50000000000000000000001; remoteInfo = PlanningApp; };
+/* End PBXContainerItemProxy section */
+/* Begin PBXTargetDependency section */
+		B10000000000000000000007 = {isa = PBXTargetDependency; target = A50000000000000000000001; targetProxy = B10000000000000000000008; };
+		B20000000000000000000007 = {isa = PBXTargetDependency; target = A50000000000000000000001; targetProxy = B20000000000000000000008; };
+/* End PBXTargetDependency section */
 	};
 	rootObject = A70000000000000000000001 /* Project object */;
 }

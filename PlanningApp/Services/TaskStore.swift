@@ -6,10 +6,38 @@ final class TaskStore: ObservableObject {
     @Published private(set) var tasks: [TaskItem]
     @Published private(set) var groups: [TaskGroup]
 
-    init() {
-        let data = Self.loadData()
+    private let storageURL: URL?
+    private let notifications: NotificationManager?
+    var isSampleData: Bool { storageURL == nil }
+
+    convenience init() {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-sample-data") {
+            do {
+                self.init(sampleData: try SampleTaskData.load())
+            } catch {
+                preconditionFailure("SampleTasks.json must be bundled and valid: \(error)")
+            }
+            return
+        }
+        #endif
+        self.init(storageURL: Self.defaultStorageURL)
+    }
+
+    init(storageURL: URL, notifications: NotificationManager? = .shared) {
+        self.storageURL = storageURL
+        self.notifications = notifications
+        let data = Self.loadData(from: storageURL)
         tasks = data.tasks
         groups = data.groups
+    }
+
+    /// Sample sessions never write files or schedule/cancel real reminders.
+    init(sampleData: PlanningData) {
+        storageURL = nil
+        notifications = nil
+        tasks = sampleData.tasks
+        groups = sampleData.groups
     }
 
     var incompleteTasks: [TaskItem] { tasks.filter { !$0.isCompleted } }
@@ -29,7 +57,7 @@ final class TaskStore: ObservableObject {
         let task = TaskItem(title: title, description: description.trimmingCharacters(in: .whitespacesAndNewlines), groupID: groupID, reminder: reminder)
         insert(task, in: groupID)
         saveData()
-        Task { await NotificationManager.shared.schedule(for: task) }
+        Task { await notifications?.schedule(for: task) }
     }
 
     func update(taskID: UUID, title: String, description: String, groupID: UUID?, reminder: ReminderSettings) {
@@ -41,7 +69,7 @@ final class TaskStore: ObservableObject {
         tasks[index].reminder = reminder
         let task = tasks[index]
         saveData()
-        Task { await NotificationManager.shared.schedule(for: task) }
+        Task { await notifications?.schedule(for: task) }
     }
 
     func createGroup(named name: String) -> TaskGroup? {
@@ -57,7 +85,7 @@ final class TaskStore: ObservableObject {
         guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
         let task = tasks.remove(at: index)
         saveData()
-        NotificationManager.shared.cancel(for: task.id)
+        notifications?.cancel(for: task.id)
     }
 
     func toggleCompletion(for taskID: UUID) {
@@ -66,8 +94,8 @@ final class TaskStore: ObservableObject {
         let task = tasks[index]
         saveData()
         Task {
-            if task.isCompleted { NotificationManager.shared.cancel(for: task.id) }
-            else { await NotificationManager.shared.schedule(for: task) }
+            if task.isCompleted { notifications?.cancel(for: task.id) }
+            else { await notifications?.schedule(for: task) }
         }
     }
 
@@ -109,7 +137,7 @@ final class TaskStore: ObservableObject {
         }
     }
 
-    private static func loadData() -> PlanningData {
+    private static func loadData(from storageURL: URL) -> PlanningData {
         guard let data = try? Data(contentsOf: storageURL) else { return PlanningData(tasks: [], groups: []) }
         if let planningData = try? JSONDecoder().decode(PlanningData.self, from: data) { return planningData }
         if let legacyTasks = try? JSONDecoder().decode([TaskItem].self, from: data) { return PlanningData(tasks: legacyTasks, groups: []) }
@@ -117,14 +145,15 @@ final class TaskStore: ObservableObject {
     }
 
     private func saveData() {
+        guard let storageURL else { return }
         do {
-            try FileManager.default.createDirectory(at: Self.storageURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: storageURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             let data = try JSONEncoder().encode(PlanningData(tasks: tasks, groups: groups))
-            try data.write(to: Self.storageURL, options: .atomic)
+            try data.write(to: storageURL, options: .atomic)
         } catch { }
     }
 
-    private static var storageURL: URL {
+    private static var defaultStorageURL: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("PlanningApp/tasks.json")
     }
