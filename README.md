@@ -29,11 +29,11 @@ This does not claim to solve every accessibility need. It is a foundation intend
 
 The floating bottom bar has four destinations: **Active**, **Completed**, **Archived**, and **Settings**. Active shows grouped unfinished plans; Completed shows finished plans with a checkmark, strikethrough text, and reduced emphasis. Archived is a “Coming soon” placeholder.
 
-Scrolling down through either task list collapses the bar into a circle at the bottom left. Tap that circle to expand navigation. It stays collapsed when scrolling back up; selecting another tab expands it and starts that list at the top. The bar reserves the same space in both states so the list does not jump.
+Scrolling down through either task list collapses the bar into a circle at the bottom left. Tap that circle to expand navigation. It stays collapsed when scrolling back up; selecting another tab expands it and starts that list at the top. The bar overlays the list without changing its viewport; end padding lets the last task scroll above it.
 
 Settings offers **System**, **Light**, and **Dark** appearance. Dark is the initial default; your choice applies to sheets and navigation and survives relaunch. The app retains its rounded task rows and familiar system controls in both appearances.
 
-The existing task-scroll and drag interactions are preserved for a separate UX iteration. A vertical drag beginning on a task can reorder it; scrolling in the list margin moves the list. Reordering does not collapse navigation.
+The existing active-task drag interaction is preserved for a separate UX iteration. A vertical drag beginning on an active task can reorder it; scrolling in the list margin moves that list. Completed rows scroll normally. Reordering does not collapse navigation.
 
 Completing a task moves it to Completed; marking it active returns it to its group. Completing a task cancels its pending reminder. Marking it incomplete schedules the reminder again if it remains enabled.
 

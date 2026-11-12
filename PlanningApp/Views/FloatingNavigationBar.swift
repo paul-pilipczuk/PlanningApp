@@ -9,7 +9,6 @@ struct FloatingNavigationBar: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Namespace private var selection
 
     var body: some View {
         GeometryReader { proxy in
@@ -35,6 +34,16 @@ struct FloatingNavigationBar: View {
                     }
                     .padding(6)
                     .frame(width: proxy.size.width, height: 72)
+                    .background(alignment: .leading) {
+                        let tabWidth = (proxy.size.width - 18) / 4
+                        let index = PlanningTab.allCases.firstIndex(of: selectedTab) ?? 0
+                        Capsule()
+                            .fill(Color.primary.opacity(0.10))
+                            .frame(width: tabWidth, height: 60)
+                            .offset(x: 6 + CGFloat(index) * (tabWidth + 2))
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
+                    }
                     .transition(.opacity)
                 }
             }
@@ -42,9 +51,10 @@ struct FloatingNavigationBar: View {
             .modifier(NavigationSurface(opaque: reduceTransparency))
             .shadow(color: .black.opacity(0.18), radius: 16, y: 6)
             .frame(maxHeight: .infinity, alignment: .bottom)
+            .animation(reduceMotion ? nil : .smooth(duration: 0.28), value: selectedTab)
             .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.38, dampingFraction: 0.86), value: isCollapsed)
         }
-        // A fixed reservation prevents collapse from changing the list's scroll geometry.
+        // Keep overlay bounds stable while the visible bar changes shape.
         .frame(height: 76)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Navigation")
@@ -66,13 +76,7 @@ struct FloatingNavigationBar: View {
             .foregroundStyle(selectedTab == tab ? Color.primary : Color.secondary)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Capsule())
-            .background {
-                if selectedTab == tab {
-                    Capsule()
-                        .fill(Color.primary.opacity(0.10))
-                        .matchedGeometryEffect(id: "selectedTab", in: selection)
-                }
-            }
+
         }
         .buttonStyle(.plain)
         .accessibilityLabel(tab.title)

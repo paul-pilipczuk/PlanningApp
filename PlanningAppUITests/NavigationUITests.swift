@@ -20,11 +20,11 @@ final class NavigationUITests: XCTestCase {
     func testFourDestinationsAndAppearance() {
         XCTAssertTrue(app.buttons["tab.active"].waitForExistence(timeout: 5))
         app.buttons["tab.completed"].tap()
-        XCTAssertTrue(app.navigationBars["Completed"].exists)
+        XCTAssertTrue(app.staticTexts["page.title"].label == "Completed")
         app.buttons["tab.archived"].tap()
         XCTAssertTrue(app.staticTexts["Coming soon"].exists)
         app.buttons["tab.settings"].tap()
-        XCTAssertTrue(app.navigationBars["Settings"].exists)
+        XCTAssertTrue(app.staticTexts["page.title"].label == "Settings")
         app.buttons["appearance.light"].tap()
         XCTAssertTrue(app.buttons["appearance.light"].isSelected)
         let light = XCTAttachment(screenshot: app.screenshot())
@@ -36,13 +36,29 @@ final class NavigationUITests: XCTestCase {
         app.buttons["tab.settings"].tap()
         XCTAssertTrue(app.buttons["appearance.light"].isSelected)
         app.buttons["tab.active"].tap()
-        XCTAssertTrue(app.navigationBars["Active"].exists)
+        XCTAssertTrue(app.staticTexts["page.title"].label == "Active")
+    }
+
+    func testSkippingTabsKeepsSelectionAndHeaderInSync() {
+        for tab in ["settings", "active", "archived", "completed", "settings", "archived", "active"] {
+            let button = app.buttons["tab.\(tab)"]
+            button.tap()
+            XCTAssertTrue(button.isSelected)
+            XCTAssertEqual(app.staticTexts["page.title"].label.lowercased(), tab)
+        }
+        let title = app.staticTexts["page.title"]
+        let add = app.buttons["task.add"]
+        XCTAssertTrue(add.isHittable)
+        XCTAssertLessThan(abs(title.frame.midY - add.frame.midY), 20)
+        add.tap()
+        XCTAssertTrue(app.navigationBars["New Task"].waitForExistence(timeout: 3))
     }
 
     func testScrollingCollapsesToLeadingCircleAndTapExpands() {
         let tab = app.buttons["tab.active"]
         XCTAssertTrue(tab.waitForExistence(timeout: 5))
         let list = app.scrollViews["taskList.active"]
+        XCTAssertGreaterThan(list.frame.maxY, tab.frame.minY)
         scrollThroughGutter(list)
         let expand = app.buttons["navigation.expand"]
         XCTAssertTrue(expand.waitForExistence(timeout: 3))
@@ -56,7 +72,7 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(tab.waitForExistence(timeout: 3))
         app.buttons["tab.completed"].tap()
         XCTAssertTrue(app.buttons["tab.settings"].exists)
-        scrollThroughGutter(app.scrollViews["taskList.completed"])
+        app.scrollViews["taskList.completed"].swipeUp()
         XCTAssertTrue(expand.waitForExistence(timeout: 3))
     }
 

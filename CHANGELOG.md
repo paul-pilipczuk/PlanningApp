@@ -16,6 +16,11 @@ All notable user-facing changes to this project are documented here.
 
 ### Changed
 
+- Animate the selected highlight and screen changes consistently across all four tabs, including nonadjacent selections.
+- Align the Add task plus button with the large Active heading.
+- Let tasks use the space behind the floating bar, with end padding to reveal the last task.
+- Allow normal completed-row swipes to scroll the list and collapse navigation.
+
 - Replace the Completed drawer with its own full list destination.
 - Preserve the current task scrolling and drag interactions for a later UX iteration.
 - Adapt the existing rounded task rows to both light and dark appearance.

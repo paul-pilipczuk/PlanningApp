@@ -2,10 +2,10 @@ import SwiftUI
 
 struct TaskListView: View {
     let tab: PlanningTab
+    @Binding var isAddingTask: Bool
     let onScrollOffset: (CGFloat) -> Void
 
     @EnvironmentObject private var taskStore: TaskStore
-    @State private var isAddingTask = false
     @State private var taskToEdit: TaskItem?
     @State private var taskPendingDeletion: TaskItem?
     @State private var taskShowingDeleteID: UUID?
@@ -44,6 +44,7 @@ struct TaskListView: View {
                 .padding(16)
                 .background(TaskScrollContentReader())
             }
+            .contentMargins(.bottom, 92, for: .scrollContent)
             .modifier(TaskScrollObserver { offset in
                 guard draggedTaskID == nil else { return }
                 onScrollOffset(offset)
@@ -60,13 +61,6 @@ struct TaskListView: View {
             endDragging()
             taskShowingDeleteID = nil
             taskFrames = [:]
-        }
-        .toolbar {
-            if tab == .active {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Add task", systemImage: "plus") { isAddingTask = true }
-                }
-            }
         }
         .sheet(isPresented: $isAddingTask) { editor(task: nil) }
         .sheet(item: $taskToEdit) { editor(task: $0) }
@@ -181,12 +175,42 @@ private struct TaskRow: View {
     @State private var touchBeganAt: Date?
     @State private var isReordering = false
 
-    var body: some View { HStack(spacing: 12) {
+    var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").font(.title2).foregroundStyle(task.isCompleted ? Color.green : Color.secondary)
-            VStack(alignment: .leading, spacing: 3) { Text(task.title).strikethrough(task.isCompleted).foregroundStyle(task.isCompleted ? Color.secondary : Color.primary); if !task.description.isEmpty { Text(task.description).lineLimit(1).font(.subheadline).foregroundStyle(.secondary) } }.frame(maxWidth: .infinity, alignment: .leading)
+            primaryInteraction
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(task.isCompleted ? "Mark \(task.title) active" : "Complete \(task.title)")
+                .accessibilityValue(task.description)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction { onTaskTap() }
+                .accessibilityAction(named: "Task details", onLongPress)
+            if isDeleteVisible {
+                Button("Delete", role: .destructive, action: onDelete)
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+            } else {
+                Button(action: onConfigure) {
+                    Image(systemName: "gearshape")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Details for \(task.title)")
+            }
         }
-        .contentShape(Rectangle())
+        .padding(14)
+        .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    @ViewBuilder
+    private var primaryInteraction: some View {
+        if task.isCompleted {
+            taskContent
+                .onTapGesture(perform: onTaskTap)
+                .onLongPressGesture(perform: onLongPress)
+        } else {
+            taskContent
         .gesture(isDeleteVisible ? nil : DragGesture(minimumDistance: 0, coordinateSpace: .named("taskList")).onChanged { value in
             if touchBeganAt == nil { touchBeganAt = Date() }
             let translation = value.translation
@@ -208,12 +232,15 @@ private struct TaskRow: View {
             if Date().timeIntervalSince(touchBeganAt ?? Date()) >= 0.45 { onLongPress() }
             else { onTaskTap() }
         })
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(task.isCompleted ? "Mark \(task.title) active" : "Complete \(task.title)")
-        .accessibilityValue(task.description)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction { onTaskTap() }
-        .accessibilityAction(named: "Task details", onLongPress)
-        if isDeleteVisible { Button("Delete", role: .destructive, action: onDelete).buttonStyle(.bordered).tint(.red) } else { Button(action: onConfigure) { Image(systemName: "gearshape").font(.body).foregroundStyle(.secondary).frame(width: 44, height: 44) }.buttonStyle(.plain).accessibilityLabel("Details for \(task.title)") }
-    }.padding(14).background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14)) }
+        }
+    }
+
+    private var taskContent: some View {
+        HStack(spacing: 12) {
+            Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").font(.title2).foregroundStyle(task.isCompleted ? Color.green : Color.secondary)
+            VStack(alignment: .leading, spacing: 3) { Text(task.title).strikethrough(task.isCompleted).foregroundStyle(task.isCompleted ? Color.secondary : Color.primary); if !task.description.isEmpty { Text(task.description).lineLimit(1).font(.subheadline).foregroundStyle(.secondary) } }.frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .contentShape(Rectangle())
+    }
+
 }

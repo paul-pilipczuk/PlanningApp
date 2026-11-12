@@ -5,26 +5,23 @@ struct PlanningRootView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedTab: PlanningTab = .active
     @State private var navigation = FloatingNavigationState()
+    @State private var isAddingTask = false
 
     var body: some View {
         NavigationStack {
-            Group {
-                switch selectedTab {
-                case .active, .completed:
-                    TaskListView(tab: selectedTab, onScrollOffset: { offset in
-                        guard !voiceOverEnabled else { return }
-                        navigation.updateScrollOffset(offset)
-                    })
-                case .archived:
-                    ContentUnavailableView("Coming soon", systemImage: "archivebox",
-                                           description: Text("Archived plans will have a home here."))
-                case .settings:
-                    AppSettingsView()
+            VStack(spacing: 0) {
+                pageHeader
+                ZStack {
+                    tabContent
+                        .id(selectedTab)
+                        .transition(.opacity)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .background(Color(uiColor: .systemBackground))
-            .navigationTitle(selectedTab.title)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .toolbar(.hidden, for: .navigationBar)
+            // Keep the bar outside the changing screen's identity so its selection survives.
+            .overlay(alignment: .bottom) {
                 FloatingNavigationBar(selectedTab: selectedTab,
                                       isCollapsed: navigation.isCollapsed && !voiceOverEnabled,
                                       onSelect: selectTab,
@@ -35,10 +32,50 @@ struct PlanningRootView: View {
         }
     }
 
+    private var pageHeader: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(selectedTab.title)
+                .font(.largeTitle.bold())
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("page.title")
+            Spacer(minLength: 12)
+            if selectedTab == .active {
+                Button {
+                    isAddingTask = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.title2)
+                        .frame(minWidth: 44, minHeight: 44)
+                }
+                .accessibilityLabel("Add task")
+                .accessibilityIdentifier("task.add")
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private var tabContent: some View {
+        switch selectedTab {
+        case .active, .completed:
+            TaskListView(tab: selectedTab, isAddingTask: $isAddingTask, onScrollOffset: { offset in
+                guard !voiceOverEnabled else { return }
+                navigation.updateScrollOffset(offset)
+            })
+        case .archived:
+            ContentUnavailableView("Coming soon", systemImage: "archivebox",
+                                   description: Text("Archived plans will have a home here."))
+        case .settings:
+            AppSettingsView()
+                .safeAreaPadding(.bottom, 92)
+        }
+    }
+
     private func selectTab(_ tab: PlanningTab) {
         guard tab != selectedTab else { return }
         navigation.reset()
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
+        withAnimation(.easeInOut(duration: reduceMotion ? 0.12 : 0.22)) {
             selectedTab = tab
         }
     }
