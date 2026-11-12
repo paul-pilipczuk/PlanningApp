@@ -13,6 +13,7 @@ struct PlanningRootView: View {
                 PlanningPageHeader(tab: selectedTab, isCompact: navigation.isHeaderCompact) {
                     isAddingTask = true
                 }
+                .zIndex(1)
                 ZStack {
                     tabContent
                         .id(selectedTab)
@@ -22,6 +23,7 @@ struct PlanningRootView: View {
             }
             .background(Color(uiColor: .systemBackground))
             .toolbar(.hidden, for: .navigationBar)
+            .scrollIndicators(.hidden)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         // Anchor navigation to the window-sized stack, independently of page layout.
@@ -45,8 +47,17 @@ struct PlanningRootView: View {
                 reportScroll(offset, from: tab)
             })
         case .archived:
-            ContentUnavailableView("Coming soon", systemImage: "archivebox",
-                                   description: Text("Archived plans will have a home here."))
+            GeometryReader { proxy in
+                ScrollView {
+                    ContentUnavailableView("Coming soon", systemImage: "archivebox",
+                                           description: Text("Archived plans will have a home here."))
+                        .frame(maxWidth: .infinity, minHeight: max(0, proxy.size.height - 92))
+                        .padding(.bottom, 92)
+                        .background(TaskScrollContentReader())
+                }
+                .modifier(TaskScrollObserver { reportScroll($0, from: .archived) })
+                .accessibilityIdentifier("archived.scroll")
+            }
         case .settings:
             AppSettingsView(onScrollOffset: { reportScroll($0, from: .settings) })
         }
@@ -77,19 +88,18 @@ private struct PlanningPageHeader: View {
     @ScaledMetric(relativeTo: .headline) private var compactHeight = 44
 
     var body: some View {
-        HStack(spacing: 12) {
-            if isCompact && tab == .active {
-                Color.clear.frame(width: 44, height: 44)
-                    .accessibilityHidden(true)
+        ZStack(alignment: isCompact ? .center : .leading) {
+            if isCompact {
+                title.font(.headline).transition(.opacity)
+            } else {
+                title.font(.largeTitle.bold()).transition(.opacity)
             }
-            ZStack(alignment: isCompact ? .center : .leading) {
-                if isCompact {
-                    title.font(.headline).transition(.opacity)
-                } else {
-                    title.font(.largeTitle.bold()).transition(.opacity)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: isCompact ? .center : .leading)
+        }
+        .padding(.horizontal, isCompact && tab == .active ? 56 : 0)
+        .padding(.trailing, !isCompact && tab == .active ? 56 : 0)
+        .frame(maxWidth: .infinity, minHeight: isCompact ? compactHeight : expandedHeight,
+               alignment: isCompact ? .center : .leading)
+        .overlay(alignment: .trailing) {
             if tab == .active {
                 Button(action: onAdd) {
                     Image(systemName: "plus")
@@ -103,9 +113,17 @@ private struct PlanningPageHeader: View {
                 .accessibilityIdentifier("task.add")
             }
         }
-        .frame(minHeight: isCompact ? compactHeight : expandedHeight)
         .padding(.horizontal, 16)
         .padding(.vertical, 4)
+        .background(Color(uiColor: .systemBackground))
+        .overlay(alignment: .bottom) {
+            HeaderScrollEdge()
+                .frame(height: 24)
+                .offset(y: 24)
+                .opacity(isCompact ? 1 : 0)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .animation(.easeInOut(duration: reduceMotion ? 0.12 : 0.22), value: isCompact)
     }
 
@@ -113,5 +131,27 @@ private struct PlanningPageHeader: View {
         Text(tab.title)
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("page.title")
+    }
+}
+
+/// A small, static material surface feathers moving content into the header.
+/// It does not blur or snapshot the full list, and never intercepts touches.
+private struct HeaderScrollEdge: View {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        ZStack {
+            if !reduceTransparency {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .mask(LinearGradient(colors: [.white, .clear], startPoint: .top, endPoint: .bottom))
+            }
+            Color(uiColor: .systemBackground)
+                .mask(LinearGradient(stops: [
+                    .init(color: .white, location: 0),
+                    .init(color: .white.opacity(0.85), location: 0.2),
+                    .init(color: .clear, location: 1)
+                ], startPoint: .top, endPoint: .bottom))
+        }
     }
 }

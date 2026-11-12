@@ -31,9 +31,9 @@ The floating bottom bar has four destinations: **Active**, **Completed**, **Arch
 
 Scrolling down through Active, Completed, or Settings collapses the bar into a circle at the bottom left. Tap that circle to expand navigation. It stays collapsed when scrolling back up; selecting another tab expands it and starts that list at the top. The bar overlays the list without changing its viewport; end padding lets the last task scroll above it. The bar stays anchored while switching tabs, and the selection highlight slides between destinations.
 
-Large page headings transition to compact titles after scrolling and return to their large size near the top. The circular Add task button stays aligned with Active in both sizes.
+Large page headings transition to compact titles after scrolling and return to their large size near the top. The circular Add task button stays aligned with Active in both sizes. All tabs share the same heading treatment, with a soft material fade beneath compact titles and hidden scroll indicators.
 
-Collapse requires actual scrollable content. A short Completed list or Settings page can fit entirely on screen and keep the bar expanded. Archived is a static placeholder and does not collapse navigation. The Demo scheme includes enough completed tasks to exercise scrolling.
+Collapse requires actual scrollable content. A short Completed list or Settings page can fit entirely on screen and keep the bar expanded. Archived uses the same scroll behavior, though its placeholder normally fits without scrolling. The Demo scheme includes enough completed tasks to exercise scrolling.
 
 Settings offers **System**, **Light**, and **Dark** appearance. Dark is the initial default; your choice applies to sheets and navigation and survives relaunch. The app retains its rounded task rows and familiar system controls in both appearances.
 
@@ -103,7 +103,7 @@ xcodebuild test -project PlanningApp.xcodeproj -scheme PlanningApp \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO
 ```
 
-Use a simulator name installed on your Mac. [The 0.4.1 fix notes](docs/RELEASE_0.4.1.md) record scope, scenarios, and validation limitations.
+Use a simulator name installed on your Mac. [The 0.4.2 polish notes](docs/RELEASE_0.4.2.md) record scope, scenarios, and validation limitations.
 
 See [performance notes and the phone comparison steps](docs/PERFORMANCE.md) for the separate optimization follow-up.
 

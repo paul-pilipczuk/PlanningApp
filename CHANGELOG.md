@@ -2,6 +2,19 @@
 
 All notable user-facing changes to this project are documented here.
 
+## [0.4.2] - 2026-11-11
+
+### Fixed
+
+- Hide page scroll indicators, removing the visible scroll gutter.
+- Use consistent large-to-compact heading alignment and typography across every tab, with Active’s add bubble independent of title layout.
+- Soften scrolling content beneath compact headings with a shallow material fade and a Reduce Transparency fallback.
+- Give Archived the same scroll-observation path as other pages when its content needs to scroll.
+
+### Kept
+
+- Stable floating navigation, circular add control, task gestures, and the existing performance optimizations.
+
 ## [0.4.1] - 2026-11-11
 
 ### Fixed

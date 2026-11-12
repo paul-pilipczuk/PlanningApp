@@ -109,3 +109,7 @@ The separate performance follow-up adds a scroll-publication regression, grouped
 ## 0.4.1 appearance regressions
 
 [The 0.4.1 notes](docs/RELEASE_0.4.1.md) record restored compact headings, the circular inline add control, stable floating-bar bounds during tab changes, and collapse on scrollable Settings content. Tests exercise Completed with the full demo fixture and Settings at larger accessibility text sizes; short/static pages intentionally keep navigation expanded. Heading state is tested for hysteresis and distinct publication so the prior scroll-performance work remains in place.
+
+## 0.4.2 visual polish
+
+[The 0.4.2 notes](docs/RELEASE_0.4.2.md) record consistent compact heading alignment, the shared Archived scroll path, hidden page scroll indicators, and the material edge. The UI suite captures Active/Completed/Settings compact headers and checks centering, restoration, navigation bounds, and Archived's fitting-content behavior. Visual inspection in light and dark appearance checks the soft edge and hidden indicators; the effect has no touch target or additional scroll-state publication.

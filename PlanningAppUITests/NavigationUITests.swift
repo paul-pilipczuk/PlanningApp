@@ -64,6 +64,9 @@ final class NavigationUITests: XCTestCase {
     func testScrollingCollapsesToLeadingCircleAndTapExpands() {
         let tab = app.buttons["tab.active"]
         XCTAssertTrue(tab.waitForExistence(timeout: 5))
+        app.buttons["tab.settings"].tap()
+        app.buttons["appearance.dark"].tap()
+        app.buttons["tab.active"].tap()
         let list = app.scrollViews["taskList.active"]
         XCTAssertGreaterThan(list.frame.maxY, tab.frame.minY)
         let largeTitleHeight = app.staticTexts["page.title"].frame.height
@@ -75,7 +78,7 @@ final class NavigationUITests: XCTestCase {
         XCTAssertLessThan(expand.frame.midX, app.frame.width / 3)
         XCTAssertGreaterThanOrEqual(expand.frame.width, 44)
         let collapsed = XCTAttachment(screenshot: app.screenshot())
-        collapsed.name = "Collapsed navigation"
+        collapsed.name = "Compact Active header and soft scroll edge"
         collapsed.lifetime = .keepAlways
         add(collapsed)
         expand.tap()
@@ -86,6 +89,11 @@ final class NavigationUITests: XCTestCase {
         app.scrollViews["taskList.completed"].swipeUp()
         XCTAssertTrue(expand.waitForExistence(timeout: 3))
         XCTAssertLessThan(app.staticTexts["page.title"].frame.height, completedTitleHeight)
+        XCTAssertEqual(app.staticTexts["page.title"].frame.midX, app.frame.midX, accuracy: 2)
+        let completed = XCTAttachment(screenshot: app.screenshot())
+        completed.name = "Compact Completed header and soft scroll edge"
+        completed.lifetime = .keepAlways
+        add(completed)
         let completedList = app.scrollViews["taskList.completed"]
         completedList.swipeDown(velocity: .fast)
         completedList.swipeDown(velocity: .fast)
@@ -105,9 +113,17 @@ final class NavigationUITests: XCTestCase {
         let expand = app.buttons["navigation.expand"]
         XCTAssertTrue(expand.waitForExistence(timeout: 3))
         XCTAssertLessThan(app.staticTexts["page.title"].frame.height, largeTitleHeight)
+        XCTAssertEqual(app.staticTexts["page.title"].frame.midX, app.frame.midX, accuracy: 2)
+        let settingsHeader = XCTAttachment(screenshot: app.screenshot())
+        settingsHeader.name = "Compact Settings header and soft scroll edge"
+        settingsHeader.lifetime = .keepAlways
+        add(settingsHeader)
         expand.tap()
         app.buttons["tab.archived"].tap()
-        app.swipeUp()
+        XCTAssertTrue(app.scrollViews["archived.scroll"].exists)
+        let archivedHeight = app.staticTexts["page.title"].frame.height
+        app.scrollViews["archived.scroll"].swipeUp()
+        XCTAssertEqual(app.staticTexts["page.title"].frame.height, archivedHeight, accuracy: 2)
         XCTAssertTrue(app.buttons["tab.settings"].exists)
         XCTAssertFalse(expand.exists)
     }
