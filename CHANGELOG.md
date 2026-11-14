@@ -2,6 +2,24 @@
 
 All notable user-facing changes to this project are documented here.
 
+## [0.5.0] - 2026-11-13
+
+### Added
+
+- Archive completed tasks, inspect saved archive details, and restore tasks to Completed.
+- Offer Archive or permanent deletion from Completed removal actions, with a final confirmation for permanent deletion.
+- Add persistent navigation-visibility and app haptic-feedback preferences.
+- Show notification permission status, a supported iPhone Settings link, and app build/retention information.
+- Add 12 archived demo tasks and archive, migration, failed-save, preference, and UI regression tests.
+
+### Changed
+
+- Preserve saved data on failed mutations and protect unreadable/unsupported files from being overwritten.
+- Exclude archived tasks from editing, completion, reordering, and notification scheduling.
+- Keep failed task edits open and require saving/cancelling draft edits before removal.
+- Honor Reduce Motion for custom task animations and opaque header treatment for reduced transparency/increased contrast.
+- Migrate local snapshots additively to schema version 3 while retaining version-2 and legacy-array loading.
+
 ## [0.4.2] - 2026-11-11
 
 ### Fixed

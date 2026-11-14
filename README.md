@@ -24,18 +24,20 @@ This does not claim to solve every accessibility need. It is a foundation intend
 | Tap a task | Marks it complete or incomplete |
 | Long-press a task, or tap its cog | Opens task details, including description, group, and reminders |
 | Swipe left on an active task | Replaces its cog with a Delete button |
+| Remove a completed task | Offers Archive or confirmed permanent deletion |
+| Restore an archived task | Returns it to Completed without restarting reminders |
 | Press and hold a task | Lifts it above the list while nearby tasks preview their new positions |
 | Enable notifications | Chooses daily or weekly timing, a time of day, and whether to repeat until completion |
 
-The floating bottom bar has four destinations: **Active**, **Completed**, **Archived**, and **Settings**. Active shows grouped unfinished plans; Completed shows finished plans with a checkmark, strikethrough text, and reduced emphasis. Archived is a “Coming soon” placeholder.
+The floating bottom bar has four destinations: **Active**, **Completed**, **Archived**, and **Settings**. Active shows grouped unfinished plans; Completed shows finished plans with a checkmark, strikethrough text, and reduced emphasis. Archived holds completed tasks you choose to keep, with saved details, restoration to Completed, and confirmed permanent deletion.
 
-Scrolling down through Active, Completed, or Settings collapses the bar into a circle at the bottom left. Tap that circle to expand navigation. It stays collapsed when scrolling back up; selecting another tab expands it and starts that list at the top. The bar overlays the list without changing its viewport; end padding lets the last task scroll above it. The bar stays anchored while switching tabs, and the selection highlight slides between destinations.
+Scrolling down through Active, Completed, Archived, or Settings collapses the bar into a circle at the bottom left. Tap that circle to expand navigation. It stays collapsed when scrolling back up; selecting another tab expands it and starts that list at the top. The bar overlays the list without changing its viewport; end padding lets the last task scroll above it. The bar stays anchored while switching tabs, and the selection highlight slides between destinations.
 
 Large page headings transition to compact titles after scrolling and return to their large size near the top. The circular Add task button stays aligned with Active in both sizes. All tabs share the same heading treatment, with a soft material fade beneath compact titles and hidden scroll indicators.
 
-Collapse requires actual scrollable content. A short Completed list or Settings page can fit entirely on screen and keep the bar expanded. Archived uses the same scroll behavior, though its placeholder normally fits without scrolling. The Demo scheme includes enough completed tasks to exercise scrolling.
+Collapse requires actual scrollable content. A short Completed list or Settings page can fit entirely on screen and keep the bar expanded. Archived uses the same scrolling and compact-heading behavior as the other pages. The Demo scheme includes enough completed tasks to exercise scrolling.
 
-Settings offers **System**, **Light**, and **Dark** appearance. Dark is the initial default; your choice applies to sheets and navigation and survives relaunch. The app retains its rounded task rows and familiar system controls in both appearances.
+Settings offers **System**, **Light**, and **Dark** appearance, **Keep navigation expanded**, **Haptic feedback**, notification permission status, and version/build information. Dark is the initial default; your choice applies to sheets and navigation and survives relaunch. The app retains its rounded task rows and familiar system controls in both appearances.
 
 The existing active-task drag interaction is preserved for a separate UX iteration. A vertical drag beginning on an active task can reorder it; scrolling in the list margin moves that list. Completed rows scroll normally. Reordering does not collapse navigation.
 
@@ -43,7 +45,7 @@ Completing a task moves it to Completed; marking it active returns it to its gro
 
 ## Privacy and reminders
 
-All task data is stored locally as JSON in the app’s Application Support directory. The app does not send task content off the phone.
+Task data, including archives, is stored locally as a versioned JSON snapshot in the app’s Application Support directory. Older supported snapshots migrate when saved. Load failures protect the existing file; failed saves leave the saved tasks unchanged. The app does not send task content off the phone.
 
 Reminders use `UNUserNotificationCenter`, Apple’s local-notification API. When notifications are enabled for a task, iOS asks for permission. A daily reminder repeats each day at the selected time; a weekly reminder repeats on the chosen weekday and time. If **Repeat until done** is turned off, only the next matching notification is scheduled.
 
@@ -71,6 +73,7 @@ For a physical iPhone, open the target’s **Signing & Capabilities** tab, selec
 ```text
 PlanningApp/
 ├── Models/
+│   ├── AppPreferences.swift           # Persisted app preferences
 │   ├── AppAppearance.swift            # System, Light, and Dark preferences
 │   ├── FloatingNavigationState.swift  # Tabs and scroll-collapse rules
 │   └── TaskItem.swift                 # Task, group, and reminder data
@@ -82,17 +85,18 @@ PlanningApp/
 │   ├── AddTaskView.swift              # Unified create/details editor
 │   ├── PlanningRootView.swift         # Four-tab app shell
 │   ├── FloatingNavigationBar.swift    # Expanding floating navigation
-│   ├── AppSettingsView.swift          # Appearance preferences
+│   ├── ArchiveView.swift              # Archived task list and read-only details
+│   ├── AppSettingsView.swift          # Appearance, interaction, permissions, and About
 │   ├── TaskScrollObserver.swift       # iOS 17+ scroll reporting
 │   └── TaskListView.swift             # Active and completed lists
 ├── Resources/
-│   └── SampleTasks.json               # 24 active + 24 completed samples
+│   └── SampleTasks.json               # Active, completed, and archived samples
 └── PlanningApp.swift                   # App entry point
 ```
 
 ### Try the sample tasks
 
-Select the shared **PlanningApp Demo** scheme in Xcode and Run. It uses `-sample-data` in Debug to load 24 active and 24 completed tasks across named groups and General. You can edit, complete, delete, and reorder them freely. Demo task changes are memory-only and reset on relaunch; saved task files and real reminders are untouched. Select **PlanningApp** to return to your saved plans. Appearance is a persistent app preference in either scheme.
+Select the shared **PlanningApp Demo** scheme in Xcode and Run. It uses `-sample-data` in Debug to load 24 active, 24 completed, and 12 archived tasks across named groups and General. You can edit, complete, delete, and reorder them freely. Demo task changes are memory-only and reset on relaunch; saved task files and real reminders are untouched. Select **PlanningApp** to return to your saved plans. Appearance is a persistent app preference in either scheme.
 
 ### Run automated checks
 
@@ -103,7 +107,7 @@ xcodebuild test -project PlanningApp.xcodeproj -scheme PlanningApp \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO
 ```
 
-Use a simulator name installed on your Mac. [The 0.4.2 polish notes](docs/RELEASE_0.4.2.md) record scope, scenarios, and validation limitations.
+Use a simulator name installed on your Mac. [The 0.5.0 initial release notes and test checklist](docs/RELEASE_0.5.0.md) record scope, scenarios, and validation limitations.
 
 See [performance notes and the phone comparison steps](docs/PERFORMANCE.md) for the separate optimization follow-up.
 
@@ -123,7 +127,7 @@ The app deliberately keeps its architecture simple:
 - SwiftUI views receive the store through `@EnvironmentObject` and keep sheet presentation state locally with `@State`.
 - `NotificationManager` owns notification permission, scheduling, and cancellation, keeping platform APIs out of the views.
 
-The app defaults to dark appearance and stores the selected `AppAppearance` in `@AppStorage`; the root applies `preferredColorScheme` across the app. It is intentionally a focused iPhone experience rather than a broad, multi-platform product.
+The app defaults to dark appearance and stores appearance and interaction preferences in a typed `AppPreferences` owner backed by UserDefaults; the root applies `preferredColorScheme` across the app. It is intentionally a focused iPhone experience rather than a broad, multi-platform product.
 
 ## UX and accessibility checklist
 

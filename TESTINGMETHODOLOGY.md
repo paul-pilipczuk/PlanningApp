@@ -113,3 +113,11 @@ The separate performance follow-up adds a scroll-publication regression, grouped
 ## 0.4.2 visual polish
 
 [The 0.4.2 notes](docs/RELEASE_0.4.2.md) record consistent compact heading alignment, the shared Archived scroll path, hidden page scroll indicators, and the material edge. The UI suite captures Active/Completed/Settings compact headers and checks centering, restoration, navigation bounds, and Archived's fitting-content behavior. Visual inspection in light and dark appearance checks the soft edge and hidden indicators; the effect has no touch target or additional scroll-state publication.
+
+## 0.5.0 archive and settings
+
+[The 0.5.0 release notes](docs/RELEASE_0.5.0.md) record initial-build evidence and the device checklist. Unit coverage includes archive/restore persistence and field preservation, legacy migration, newest-first archives, stale archived-task operations, failed-write rollback, unreadable/future/inconsistent file protection, reminder cancellation, and preference persistence. Writes use temporary files and injected failure/notification seams.
+
+UI coverage exercises the completed-task removal chooser, cancellation, archiving, restoration, final deletion confirmation, deletion from archived details, navigation preference persistence, and existing task/navigation/scroll gestures. Capture permanent-delete alerts after their presentation transition for light/dark visual review; an intermediate frame can make the system material appear unusually transparent. Native system alert styling remains in use.
+
+UI runs use memory-only fixtures plus a Debug-only preference suite (`-ui-testing`). `-reset-test-preferences` clears only that suite at test setup; remove the reset argument before relaunch persistence checks. Demo and ordinary app preferences are unaffected. If SpringBoard reports a preflight Busy error before the app launches, record it as infrastructure failure and repeat UI-only on an isolated simulator; do not interpret it as an exercised app interaction. Unit and UI suites can be run separately. Actual VoiceOver focus, physical haptics, reminder delivery, and phone animation feel remain device checks.
