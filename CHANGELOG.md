@@ -2,6 +2,14 @@
 
 All notable user-facing changes to this project are documented here.
 
+## [0.5.4] - 2026-11-13
+
+- Add a Completed ellipsis menu with Edit, Copy, Archive, and Delete; support copying completed tasks into new active variations.
+- Match Completed removal popouts to Archive’s native control-anchored menus; use direct action rows in task details.
+- Keep separate permanent-delete confirmation and direct assistive-technology Archive/Delete actions.
+- Use consistent compact frosted headers and page-matched soft edges across every tab.
+- Keep feedback outside the scroll fade and allow header transitions while VoiceOver keeps navigation expanded.
+
 ## [0.5.3] - 2026-11-13
 
 - Condense Settings with sentence-case headings, consistent spacing, and fewer detached summaries.
