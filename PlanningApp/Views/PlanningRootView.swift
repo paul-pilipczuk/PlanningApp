@@ -76,7 +76,7 @@ struct PlanningRootView: View {
             case .active, .completed:
                 TaskListView(tab: tab, isAddingTask: $isAddingTask, onScrollOffset: { reportScroll($0, from: tab) })
             case .archived:
-                ArchiveView(onScrollOffset: { reportScroll($0, from: .archived) })
+                ArchiveView(onScrollOffset: { reportScroll($0, from: .archived) }, onTaskCreated: { selectTab(.active) })
             case .settings:
                 AppSettingsView(onScrollOffset: { reportScroll($0, from: .settings) })
             }

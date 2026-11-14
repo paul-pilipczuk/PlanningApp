@@ -2,6 +2,12 @@
 
 All notable user-facing changes to this project are documented here.
 
+## [0.5.2] - 2026-11-13
+
+- Add Copy between Restore and Delete in archived task actions and details.
+- Prefill a new task with the archived task's fields, leaving the original unchanged.
+- Select Active after successful creation; cancellation retains Archive and its scroll position.
+
 ## [0.5.1] - 2026-11-13
 
 - Shorten task actions to Restore, Archive, Remove, and Delete without trailing punctuation.

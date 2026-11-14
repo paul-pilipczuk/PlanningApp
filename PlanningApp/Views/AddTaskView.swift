@@ -17,17 +17,18 @@ struct TaskEditorView: View {
     @State private var newGroupName = ""
     @State private var editorGroups: [TaskGroup]
 
-    init(task: TaskItem? = nil, groups: [TaskGroup], onSave: @escaping (String, String, UUID?, ReminderSettings) -> Bool, onCreateGroup: @escaping (String) -> TaskGroup?, onRequestDelete: (() -> Void)? = nil, onArchive: (() -> Bool)? = nil) {
+    init(task: TaskItem? = nil, draft: TaskItem? = nil, groups: [TaskGroup], onSave: @escaping (String, String, UUID?, ReminderSettings) -> Bool, onCreateGroup: @escaping (String) -> TaskGroup?, onRequestDelete: (() -> Void)? = nil, onArchive: (() -> Bool)? = nil) {
         self.task = task
         self.groups = groups
         self.onSave = onSave
         self.onCreateGroup = onCreateGroup
         self.onRequestDelete = onRequestDelete
         self.onArchive = onArchive
-        _title = State(initialValue: task?.title ?? "")
-        _description = State(initialValue: task?.description ?? "")
-        _groupID = State(initialValue: task?.groupID)
-        _reminder = State(initialValue: task?.reminder ?? ReminderSettings())
+        let initial = task ?? draft
+        _title = State(initialValue: initial?.title ?? "")
+        _description = State(initialValue: initial?.description ?? "")
+        _groupID = State(initialValue: initial?.groupID)
+        _reminder = State(initialValue: initial?.reminder ?? ReminderSettings())
         _editorGroups = State(initialValue: groups)
     }
 
@@ -37,6 +38,7 @@ struct TaskEditorView: View {
                 Section("Task") {
                     TextField("Title", text: $title)
                         .textInputAutocapitalization(.sentences)
+                        .accessibilityIdentifier("task.title")
                     Picker("Group", selection: $groupID) {
                         Text("General").tag(UUID?.none)
                         ForEach(editorGroups) { group in Text(group.name).tag(Optional(group.id)) }
@@ -55,6 +57,7 @@ struct TaskEditorView: View {
                 }
                 Section("Description") {
                     TextEditor(text: $description).frame(minHeight: 90)
+                        .accessibilityIdentifier("task.description")
                 }
                 Section("Notifications") {
                     Toggle("Notifications", isOn: $reminder.isEnabled)
@@ -96,6 +99,7 @@ struct TaskEditorView: View {
                         if onSave(title, description, groupID, reminder) { dismiss() }
                     }
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityIdentifier("task.save")
                 }
             }
         }

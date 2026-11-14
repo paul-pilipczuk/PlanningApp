@@ -232,6 +232,49 @@ final class NavigationUITests: XCTestCase {
         assertDisappears(task)
     }
 
+    func testCopyFromArchivedDetailsCreatesNewActiveTask() {
+        app.buttons["tab.archived"].tap()
+        app.buttons["Archived task: Archive sample plan 1"].tap()
+        app.buttons["Copy"].tap()
+        XCTAssertTrue(app.navigationBars["New Task"].waitForExistence(timeout: 3))
+        let title = app.textFields["task.title"]
+        XCTAssertEqual(title.value as? String, "Archive sample plan 1")
+        title.tap()
+        title.typeText(" copy")
+        let editedTitle = title.value as! String
+        XCTAssertNotEqual(editedTitle, "Archive sample plan 1")
+        app.buttons["task.save"].tap()
+        XCTAssertTrue(app.buttons["Complete \(editedTitle)"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.buttons["tab.active"].isSelected)
+        app.buttons["tab.archived"].tap()
+        XCTAssertTrue(app.buttons["Archived task: Archive sample plan 1"].exists)
+    }
+
+    func testCancellingArchiveCopyPreservesScrolledPage() throws {
+        app.buttons["tab.archived"].tap()
+        let list = app.scrollViews["archived.scroll"]
+        list.swipeUp()
+        XCTAssertTrue(app.buttons["navigation.expand"].waitForExistence(timeout: 3))
+        let rows = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Archived task: '"))
+        let row = try XCTUnwrap(rows.allElementsBoundByIndex.first {
+            $0.isHittable && $0.frame.minY > list.frame.minY + 30 && $0.frame.maxY < list.frame.maxY - 100
+        })
+        let originalY = row.frame.minY
+        let title = String(row.label.dropFirst("Archived task: ".count))
+        app.buttons["Actions for \(title)"].tap()
+        app.buttons["Copy"].tap()
+        XCTAssertTrue(app.navigationBars["New Task"].waitForExistence(timeout: 3))
+        app.buttons["Cancel"].tap()
+        assertDisappears(app.navigationBars["New Task"])
+        XCTAssertEqual(app.staticTexts["page.title"].label, "Archived")
+        XCTAssertEqual(row.frame.minY, originalY, accuracy: 2)
+        XCTAssertTrue(app.buttons["navigation.expand"].exists)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Archive scroll retained after cancelling Copy"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
     func testNavigationPreferencePersistsAndKeepsBarExpandedWhileHeadingCompacts() {
         app.buttons["tab.settings"].tap()
         let toggle = app.switches["settings.keepNavigationExpanded"]
