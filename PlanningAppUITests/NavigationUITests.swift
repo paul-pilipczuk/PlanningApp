@@ -162,7 +162,7 @@ final class NavigationUITests: XCTestCase {
     private func requestCompletedRemoval() {
         app.buttons["tab.completed"].tap()
         app.buttons["Details for Set up the planning app"].tap()
-        app.buttons["Remove Task…"].tap()
+        app.buttons["Remove"].tap()
         XCTAssertTrue(app.buttons["Archive"].waitForExistence(timeout: 3))
     }
 
@@ -183,7 +183,7 @@ final class NavigationUITests: XCTestCase {
         screenshot.name = "Archived task details"
         screenshot.lifetime = .keepAlways
         add(screenshot)
-        app.buttons["Restore to Completed"].tap()
+        app.buttons["Restore"].tap()
         assertDisappears(archived)
         app.buttons["tab.completed"].tap()
         XCTAssertTrue(app.buttons["Mark Set up the planning app active"].waitForExistence(timeout: 3))
@@ -194,8 +194,8 @@ final class NavigationUITests: XCTestCase {
             app.buttons["tab.settings"].tap()
             app.buttons["appearance.\(appearance)"].tap()
             requestCompletedRemoval()
-            app.buttons["Delete Permanently…"].tap()
-            let alert = app.alerts["Delete Task Permanently?"]
+            app.buttons["Delete"].tap()
+            let alert = app.alerts["Delete Task?"]
             XCTAssertTrue(alert.waitForExistence(timeout: 3))
             XCTAssertTrue(alert.buttons["Cancel"].isHittable)
             // Allow the system material's presentation transition to finish for visual review.
@@ -208,9 +208,9 @@ final class NavigationUITests: XCTestCase {
             XCTAssertTrue(app.buttons["Mark Set up the planning app active"].exists)
         }
         requestCompletedRemoval()
-        app.buttons["Delete Permanently…"].tap()
-        XCTAssertTrue(app.alerts["Delete Task Permanently?"].waitForExistence(timeout: 3))
-        app.alerts.buttons["Delete Permanently"].tap()
+        app.buttons["Delete"].tap()
+        XCTAssertTrue(app.alerts["Delete Task?"].waitForExistence(timeout: 3))
+        app.alerts.buttons["Delete"].tap()
         assertDisappears(app.buttons["Mark Set up the planning app active"])
         app.buttons["tab.archived"].tap()
         XCTAssertFalse(app.buttons["Archived task: Set up the planning app"].exists)
@@ -221,13 +221,13 @@ final class NavigationUITests: XCTestCase {
         let task = app.buttons["Archived task: Archive sample plan 1"]
         XCTAssertTrue(task.waitForExistence(timeout: 3))
         task.tap()
-        app.buttons["Delete Permanently…"].tap()
-        XCTAssertTrue(app.alerts["Delete Task Permanently?"].waitForExistence(timeout: 3))
+        app.buttons["Delete"].tap()
+        XCTAssertTrue(app.alerts["Delete Task?"].waitForExistence(timeout: 3))
         app.alerts.buttons["Cancel"].tap()
         XCTAssertTrue(app.navigationBars["Archived Task"].exists)
-        app.buttons["Delete Permanently…"].tap()
-        XCTAssertTrue(app.alerts["Delete Task Permanently?"].waitForExistence(timeout: 3))
-        app.alerts.buttons["Delete Permanently"].tap()
+        app.buttons["Delete"].tap()
+        XCTAssertTrue(app.alerts["Delete Task?"].waitForExistence(timeout: 3))
+        app.alerts.buttons["Delete"].tap()
         assertDisappears(app.navigationBars["Archived Task"])
         assertDisappears(task)
     }

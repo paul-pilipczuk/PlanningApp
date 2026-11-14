@@ -113,6 +113,8 @@ See [performance notes and the phone comparison steps](docs/PERFORMANCE.md) for 
 
 Additional project documents:
 
+- [Interface conventions](docs/UX_CONVENTIONS.md) define action wording, text layout, and shared page behavior.
+
 - `TESTINGMETHODOLOGY.md` defines the tests-first, TDD, BDD, and release-validation approach.
 - `InternalDocs/IMPLEMENTATION_PLAN.md` explains the original intentionally lean scope.
 - `InternalDocs/SWIFT_CONCEPTS.md` links key SwiftUI concepts to concrete files and lines of code.
