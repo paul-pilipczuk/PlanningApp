@@ -108,6 +108,10 @@ final class NavigationUITests: XCTestCase {
         app.launch()
         app.buttons["tab.settings"].tap()
         let largeTitleHeight = app.staticTexts["page.title"].frame.height
+        let expandedSettings = XCTAttachment(screenshot: app.screenshot())
+        expandedSettings.name = "Settings with accessibility text"
+        expandedSettings.lifetime = .keepAlways
+        add(expandedSettings)
         let settings = app.scrollViews["settings.scroll"]
         XCTAssertTrue(settings.waitForExistence(timeout: 3))
         settings.swipeUp()
@@ -280,6 +284,9 @@ final class NavigationUITests: XCTestCase {
         let toggle = app.switches["settings.keepNavigationExpanded"]
         XCTAssertTrue(toggle.waitForExistence(timeout: 3))
         toggle.tap()
+        let haptics = app.switches["settings.hapticFeedback"]
+        XCTAssertEqual(haptics.value as? String, "1")
+        haptics.tap()
         app.terminate()
         app.launch()
         app.buttons["tab.completed"].tap()
@@ -290,6 +297,11 @@ final class NavigationUITests: XCTestCase {
         XCTAssertLessThan(app.staticTexts["page.title"].frame.height, initialHeight)
         app.buttons["tab.settings"].tap()
         XCTAssertEqual(toggle.value as? String, "1")
+        XCTAssertEqual(haptics.value as? String, "0")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Condensed Settings — dark"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
         toggle.tap()
     }
 
