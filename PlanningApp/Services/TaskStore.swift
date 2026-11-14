@@ -28,7 +28,13 @@ final class TaskStore: ObservableObject {
     convenience init() {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-sample-data") {
-            do { self.init(sampleData: try SampleTaskData.load()) }
+            do {
+                var samples = try SampleTaskData.load()
+                if ProcessInfo.processInfo.arguments.contains("-short-completed-data") {
+                    samples.tasks = Array(samples.tasks.filter { $0.isCompleted && !$0.isArchived }.prefix(3))
+                }
+                self.init(sampleData: samples)
+            }
             catch { preconditionFailure("SampleTasks.json must be bundled and valid: \(error)") }
             return
         }

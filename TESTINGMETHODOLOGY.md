@@ -125,3 +125,7 @@ UI runs use memory-only fixtures plus a Debug-only preference suite (`-ui-testin
 ## 0.5.2 archive copies
 
 A copy must preserve editable fields while creating an independent active identity only when saved. Unit tests cover archive preservation across relaunch and fallback from a missing group. UI tests cover both entry points, editing/adding with navigation to Active after dismissal, and cancelling from a scrolled Archive list with row-position and compact-navigation assertions. Existing archive/restore/delete scenarios remain regression checks.
+
+## 0.5.4 menus, completed copies, and shared headers
+
+Use the Debug-only `-sample-data -short-completed-data` fixture to verify the first three Completed removal controls without artificial overflow. Tests open each native menu, dismiss it without changes, archive a selected row, and cancel/confirm deletion from Completed’s ellipsis menu. Saved details use direct Archive/Copy/Delete rows; destructive confirmation still occurs after the editor dismisses. Completed Copy tests verify an independent active task and cancellation with retained scroll position. Compare shared compact headers on every tab in light/dark appearance and repeat on a narrow iOS 17 phone.

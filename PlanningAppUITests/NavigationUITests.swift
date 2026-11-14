@@ -153,6 +153,68 @@ final class NavigationUITests: XCTestCase {
         add(screenshot)
     }
 
+    func testCompletedRemovalMenusStayWithFirstThreeRowsInShortList() {
+        app.terminate()
+        app.launchArguments += ["-short-completed-data"]
+        app.launch()
+        app.buttons["tab.completed"].tap()
+        let rows = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Mark ' AND label ENDSWITH ' active'"))
+        XCTAssertEqual(rows.count, 3)
+        for index in 0..<3 {
+            rows.element(boundBy: index).swipeLeft()
+            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'task.remove.'")).firstMatch.tap()
+            XCTAssertTrue(app.buttons["task.archiveChoice"].waitForExistence(timeout: 3))
+            XCTAssertTrue(app.buttons["task.deleteChoice"].exists)
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = "Completed removal menu anchored to row \(index + 1)"
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+            app.staticTexts["page.title"].tap()
+            XCTAssertEqual(rows.count, 3)
+        }
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'task.remove.'")).firstMatch.tap()
+        app.buttons["task.archiveChoice"].tap()
+        let twoRows = XCTNSPredicateExpectation(predicate: NSPredicate(format: "count == 2"), object: rows)
+        XCTAssertEqual(XCTWaiter.wait(for: [twoRows], timeout: 3), .completed)
+        for confirm in [false, true] {
+            app.buttons["Actions for Set up the planning app"].tap()
+            app.buttons["Delete"].tap()
+            XCTAssertTrue(app.alerts["Delete Task?"].waitForExistence(timeout: 3))
+            app.alerts.buttons[confirm ? "Delete" : "Cancel"].tap()
+        }
+        let oneRow = XCTNSPredicateExpectation(predicate: NSPredicate(format: "count == 1"), object: rows)
+        XCTAssertEqual(XCTWaiter.wait(for: [oneRow], timeout: 3), .completed)
+    }
+
+    func testEveryPageUsesTheSameCompactHeaderInBothAppearances() {
+        app.terminate()
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"]
+        app.launch()
+        for appearance in ["light", "dark"] {
+            app.buttons["tab.settings"].tap()
+            app.buttons["appearance.\(appearance)"].tap()
+            app.buttons["tab.active"].tap()
+            for tab in ["active", "completed", "archived", "settings"] {
+                if tab != "active" { app.buttons["tab.\(tab)"].tap() }
+                let largeHeight = app.staticTexts["page.title"].frame.height
+                let listID = tab == "active" || tab == "completed" ? "taskList.\(tab)" : "\(tab).scroll"
+                let list = app.scrollViews[listID]
+                if tab == "active" { scrollThroughGutter(list) }
+                else { list.swipeUp() }
+                XCTAssertLessThan(app.staticTexts["page.title"].frame.height, largeHeight)
+                XCTAssertEqual(app.staticTexts["page.title"].frame.midX, app.frame.midX, accuracy: 2)
+                let screenshot = XCTAttachment(screenshot: app.screenshot())
+                screenshot.name = "Shared compact \(tab) header — \(appearance)"
+                screenshot.lifetime = .keepAlways
+                add(screenshot)
+                app.buttons["navigation.expand"].tap()
+            }
+            // Return Settings to its top before selecting the next appearance.
+            app.scrollViews["settings.scroll"].swipeDown(velocity: .fast)
+            app.scrollViews["settings.scroll"].swipeDown(velocity: .fast)
+        }
+    }
+
     func testTaskCompletionMovesBetweenTabs() {
         let title = "Plan the week"
         let task = app.buttons["Complete \(title)"]
@@ -184,19 +246,19 @@ final class NavigationUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 4), .completed, file: file, line: line)
     }
 
-    private func requestCompletedRemoval() {
+    private func openCompletedDetails() {
         app.buttons["tab.completed"].tap()
-        app.buttons["Details for Set up the planning app"].tap()
-        app.buttons["Remove"].tap()
-        XCTAssertTrue(app.buttons["Archive"].waitForExistence(timeout: 3))
+        app.buttons["Actions for Set up the planning app"].tap()
+        app.buttons["Edit"].tap()
+        // Bring the action section completely into view on smaller phones.
+        app.collectionViews.firstMatch.swipeUp()
     }
 
     func testArchiveAndRestoreFromCompletedTaskDetails() {
-        requestCompletedRemoval()
-        if app.buttons["Cancel"].exists { app.buttons["Cancel"].tap() }
-        else { app.staticTexts["page.title"].tap() }
+        openCompletedDetails()
+        app.buttons["Cancel"].tap()
         XCTAssertTrue(app.buttons["Mark Set up the planning app active"].exists)
-        requestCompletedRemoval()
+        openCompletedDetails()
         app.buttons["Archive"].tap()
         assertDisappears(app.buttons["Mark Set up the planning app active"])
         app.buttons["tab.archived"].tap()
@@ -218,7 +280,7 @@ final class NavigationUITests: XCTestCase {
         for appearance in ["dark", "light"] {
             app.buttons["tab.settings"].tap()
             app.buttons["appearance.\(appearance)"].tap()
-            requestCompletedRemoval()
+            openCompletedDetails()
             app.buttons["Delete"].tap()
             let alert = app.alerts["Delete Task?"]
             XCTAssertTrue(alert.waitForExistence(timeout: 3))
@@ -232,7 +294,7 @@ final class NavigationUITests: XCTestCase {
             alert.buttons["Cancel"].tap()
             XCTAssertTrue(app.buttons["Mark Set up the planning app active"].exists)
         }
-        requestCompletedRemoval()
+        openCompletedDetails()
         app.buttons["Delete"].tap()
         XCTAssertTrue(app.alerts["Delete Task?"].waitForExistence(timeout: 3))
         app.alerts.buttons["Delete"].tap()
@@ -298,6 +360,38 @@ final class NavigationUITests: XCTestCase {
         screenshot.name = "Archive scroll retained after cancelling Copy"
         screenshot.lifetime = .keepAlways
         add(screenshot)
+    }
+
+    func testCompletedMenuCopiesIntoNewActiveTask() {
+        app.buttons["tab.completed"].tap()
+        app.buttons["Actions for Set up the planning app"].tap()
+        app.buttons["Copy"].tap()
+        XCTAssertTrue(app.navigationBars["New Task"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.textFields["task.title"].value as? String, "Set up the planning app")
+        app.buttons["task.save"].tap()
+        XCTAssertTrue(app.buttons["Complete Set up the planning app"].waitForExistence(timeout: 4))
+        app.buttons["tab.completed"].tap()
+        XCTAssertTrue(app.buttons["Mark Set up the planning app active"].exists)
+    }
+
+    func testCancellingCompletedCopyPreservesScrolledPage() throws {
+        app.buttons["tab.completed"].tap()
+        let list = app.scrollViews["taskList.completed"]
+        list.swipeUp()
+        let rows = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Mark ' AND label ENDSWITH ' active'"))
+        let row = try XCTUnwrap(rows.allElementsBoundByIndex.first {
+            $0.isHittable && $0.frame.minY > list.frame.minY + 30 && $0.frame.maxY < list.frame.maxY - 100
+        })
+        let originalY = row.frame.minY
+        let title = String(row.label.dropFirst("Mark ".count).dropLast(" active".count))
+        app.buttons["Actions for \(title)"].tap()
+        app.buttons["Copy"].tap()
+        XCTAssertTrue(app.navigationBars["New Task"].waitForExistence(timeout: 3))
+        app.buttons["Cancel"].tap()
+        assertDisappears(app.navigationBars["New Task"])
+        XCTAssertEqual(app.staticTexts["page.title"].label, "Completed")
+        XCTAssertEqual(row.frame.minY, originalY, accuracy: 2)
+        XCTAssertTrue(app.buttons["navigation.expand"].exists)
     }
 
     func testNavigationPreferencePersistsAndKeepsBarExpandedWhileHeadingCompacts() {
