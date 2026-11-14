@@ -17,6 +17,7 @@ struct TaskListView: View {
     @State private var didCreateTask = false
     @State private var taskShowingDeleteID: UUID?
     @State private var draggedTaskID: UUID?
+    @State private var dragGroupID: UUID?
     @State private var dragPreviewFrame: CGRect?
     @State private var dragTranslation: CGSize = .zero
     @State private var hasPendingReorder = false
@@ -51,7 +52,7 @@ struct TaskListView: View {
                 .padding(16)
                 .padding(.bottom, 92)
                 .background(TaskScrollContentReader())
-                .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: taskStore.tasks)
+                .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: taskStore.taskRevision)
             }
             .modifier(TaskScrollObserver { offset in
                 guard draggedTaskID == nil else { return }
@@ -149,7 +150,7 @@ struct TaskListView: View {
     private func taskFrameReader(for taskID: UUID) -> some View { GeometryReader { proxy in Color.clear.preference(key: TaskFramePreferenceKey.self, value: [taskID: proxy.frame(in: .named("taskList"))]) } }
 
     @ViewBuilder private var dragPreview: some View {
-        if let draggedTaskID, let task = taskStore.tasks.first(where: { $0.id == draggedTaskID && !$0.isCompleted }), let dragPreviewFrame {
+        if let draggedTaskID, let task = taskStore.activeTasks(in: dragGroupID).first(where: { $0.id == draggedTaskID }), let dragPreviewFrame {
             TaskRow(task: task, isDeleteVisible: false, onComplete: {}, onTaskTap: {}, onLongPress: {}, onConfigure: {}, onCopy: nil, onArchive: nil, onDelete: {}, onDragChanged: { _ in }, onDragEnded: { _ in })
                 .frame(width: dragPreviewFrame.width).scaleEffect(1.035).shadow(color: .black.opacity(0.45), radius: 14, y: 8)
                 .offset(x: dragPreviewFrame.minX, y: dragPreviewFrame.minY + dragTranslation.height).allowsHitTesting(false).accessibilityHidden(true)
@@ -164,10 +165,19 @@ struct TaskListView: View {
         }
     }
 
-    private func beginDragging(_ task: TaskItem) { guard draggedTaskID == nil, let frame = taskFrames.frames[task.id] else { return }; withAnimation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.8)) { draggedTaskID = task.id; dragPreviewFrame = frame }; hasPendingReorder = false }
+    private func beginDragging(_ task: TaskItem) {
+        guard draggedTaskID == nil, let frame = taskFrames.frames[task.id] else { return }
+        dragGroupID = task.groupID
+        withAnimation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.8)) {
+            draggedTaskID = task.id
+            dragPreviewFrame = frame
+        }
+        hasPendingReorder = false
+    }
+
     private func updateTaskOrder(for location: CGPoint) {
-        guard let draggedTaskID, let dragged = taskStore.tasks.first(where: { $0.id == draggedTaskID && !$0.isCompleted }) else { return }
-        let candidates = taskStore.tasks.filter { !$0.isCompleted && $0.groupID == dragged.groupID }
+        guard let draggedTaskID else { return }
+        let candidates = taskStore.activeTasks(in: dragGroupID)
         guard let currentIndex = candidates.firstIndex(where: { $0.id == draggedTaskID }) else { return }
 
         if currentIndex > 0,
@@ -194,7 +204,7 @@ struct TaskListView: View {
     }
     private func endDragging() {
         if hasPendingReorder { taskStore.persistTaskOrder() }
-        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { draggedTaskID = nil; dragPreviewFrame = nil; dragTranslation = .zero }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { draggedTaskID = nil; dragGroupID = nil; dragPreviewFrame = nil; dragTranslation = .zero }
         hasPendingReorder = false
     }
 

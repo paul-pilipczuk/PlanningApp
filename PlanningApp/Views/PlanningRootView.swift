@@ -55,6 +55,9 @@ struct PlanningRootView: View {
             .scrollIndicators(.hidden)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
+            taskStore.releasePresentationCaches()
+        }
         .onChange(of: preferences.keepNavigationExpanded) { _, _ in navigation.expand() }
         .onChange(of: taskStore.feedbackMessage) { _, message in
             if let message { UIAccessibility.post(notification: .announcement, argument: message) }

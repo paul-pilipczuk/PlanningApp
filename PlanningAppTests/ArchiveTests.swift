@@ -208,6 +208,109 @@ final class ArchiveTests: XCTestCase {
         XCTAssertTrue(store.archivedTasks.isEmpty)
     }
 
+    func testWarmTaskCollectionsFollowReorderCompletionArchiveRestoreAndDelete() throws {
+        let group = TaskGroup(name: "Work")
+        let first = TaskItem(title: "First", groupID: group.id)
+        let second = TaskItem(title: "Second", groupID: group.id)
+        let done = TaskItem(title: "Done", isCompleted: true)
+        let store = TaskStore(sampleData: PlanningData(tasks: [first, second, done], groups: [group]))
+        XCTAssertEqual(store.incompleteTasks.map(\.id), [first.id, second.id])
+        XCTAssertEqual(store.completedTasks.map(\.id), [done.id])
+        XCTAssertTrue(store.archivedTasks.isEmpty)
+        XCTAssertEqual(store.activeSections.first?.tasks.map(\.id), [first.id, second.id])
+        XCTAssertEqual(store.activeTasks(in: group.id).map(\.id), [first.id, second.id])
+        XCTAssertTrue(store.move(taskID: second.id, before: first.id, persist: false))
+        XCTAssertEqual(store.activeTasks(in: group.id).map(\.id), [second.id, first.id])
+        XCTAssertEqual(store.activeSections.first?.tasks.map(\.id), [second.id, first.id])
+        XCTAssertTrue(store.toggleCompletion(for: first.id))
+        XCTAssertEqual(store.incompleteTasks.map(\.id), [second.id])
+        XCTAssertEqual(store.completedTasks.map(\.id), [first.id, done.id])
+        XCTAssertTrue(store.archive(taskID: done.id))
+        XCTAssertEqual(store.completedTasks.map(\.id), [first.id])
+        XCTAssertEqual(store.archivedTasks.map(\.id), [done.id])
+        XCTAssertTrue(store.restore(taskID: done.id))
+        XCTAssertEqual(store.completedTasks.map(\.id), [first.id, done.id])
+        XCTAssertTrue(store.archivedTasks.isEmpty)
+        XCTAssertTrue(store.update(taskID: second.id, title: "Changed", description: "", groupID: nil, reminder: ReminderSettings()))
+        XCTAssertTrue(store.activeTasks(in: group.id).isEmpty)
+        XCTAssertEqual(store.activeTasks(in: nil).first?.title, "Changed")
+        XCTAssertTrue(store.delete(taskID: first.id))
+        XCTAssertEqual(store.completedTasks.map(\.id), [done.id])
+        XCTAssertTrue(store.add(title: "New", description: "", groupID: nil, reminder: ReminderSettings()))
+        XCTAssertEqual(store.activeTasks(in: nil).map(\.title), ["Changed", "New"])
+    }
+
+    func testWarmGroupNamesAndSectionsRefreshWhenGroupsReload() throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let group = TaskGroup(name: "Old name")
+        let task = TaskItem(title: "Task", groupID: group.id)
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try JSONEncoder().encode(PlanningData(tasks: [task], groups: [group])).write(to: url)
+        let store = TaskStore(storageURL: url, notifications: nil)
+        XCTAssertEqual(store.groupName(for: task), "Old name")
+        XCTAssertEqual(store.activeSections.first?.title, "Old name")
+        XCTAssertEqual(store.activeTasks(in: group.id), [task])
+        _ = store.createGroup(named: "Empty group")
+        XCTAssertEqual(store.activeSections.map(\.title), ["Old name", "Empty group"])
+        let renamed = TaskGroup(id: group.id, name: "New name")
+        try JSONEncoder().encode(PlanningData(tasks: [task], groups: [renamed])).write(to: url)
+        store.reload()
+        XCTAssertEqual(store.groupName(for: task), "New name")
+        XCTAssertEqual(store.activeSections.map(\.title), ["New name"])
+        XCTAssertEqual(store.activeTasks(in: group.id), [task])
+    }
+
+    func testFailedReorderAndCachePurgePreserveCurrentListsAndSavedBytes() throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let first = TaskItem(title: "First")
+        let second = TaskItem(title: "Second")
+        let bytes = try JSONEncoder().encode(PlanningData(tasks: [first, second], groups: []))
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try bytes.write(to: url)
+        let store = TaskStore(storageURL: url, notifications: nil, write: { _, _ in throw CocoaError(.fileWriteNoPermission) })
+        XCTAssertEqual(store.activeTasks(in: nil), [first, second])
+        XCTAssertEqual(store.incompleteTasks, [first, second])
+        XCTAssertEqual(store.activeSections.first?.tasks, [first, second])
+        XCTAssertTrue(store.move(taskID: second.id, before: first.id, persist: false))
+        XCTAssertEqual(store.activeTasks(in: nil), [second, first])
+        XCTAssertFalse(store.persistTaskOrder())
+        XCTAssertEqual(store.activeTasks(in: nil), [first, second])
+        XCTAssertEqual(store.incompleteTasks, [first, second])
+        XCTAssertEqual(store.activeSections.first?.tasks, [first, second])
+        let revision = store.taskRevision
+        var publications = 0
+        let subscription = store.objectWillChange.sink { publications += 1 }
+        store.releasePresentationCaches()
+        XCTAssertEqual(store.taskRevision, revision)
+        XCTAssertEqual(publications, 0)
+        XCTAssertEqual(store.activeTasks(in: nil), [first, second])
+        XCTAssertTrue(store.completedTasks.isEmpty)
+        XCTAssertTrue(store.archivedTasks.isEmpty)
+        XCTAssertEqual(try Data(contentsOf: url), bytes)
+        withExtendedLifetime(subscription) { }
+    }
+
+    func testAnimationRevisionChangesOnlyWhenTaskDataChanges() {
+        let first = TaskItem(title: "First")
+        let second = TaskItem(title: "Second")
+        let store = TaskStore(sampleData: PlanningData(tasks: [first, second], groups: []))
+        let revision = store.taskRevision
+        _ = store.incompleteTasks
+        _ = store.activeSections
+        store.feedbackMessage = "Message"
+        _ = store.createGroup(named: "Work")
+        store.persistTaskOrder()
+        store.releasePresentationCaches()
+        XCTAssertEqual(store.taskRevision, revision)
+        store.toggleCompletion(for: first.id)
+        XCTAssertEqual(store.taskRevision, revision + 1)
+        store.update(taskID: second.id, title: second.title, description: second.description,
+                     groupID: second.groupID, reminder: second.reminder)
+        XCTAssertEqual(store.taskRevision, revision + 1)
+    }
+
     private func temporaryURL() -> URL {
         FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathComponent("tasks.json")
     }
