@@ -74,15 +74,15 @@ struct TaskListView: View {
         .confirmationDialog("Remove Completed Task?", isPresented: Binding(get: { taskPendingRemoval != nil }, set: { if !$0 { taskPendingRemoval = nil } }), titleVisibility: .visible) {
             if let task = taskPendingRemoval {
                 Button("Archive") { taskStore.archive(taskID: task.id); taskShowingDeleteID = nil }
-                Button("Delete Permanently…", role: .destructive) { taskPendingDeletion = task }
+                Button("Delete", role: .destructive) { taskPendingDeletion = task }
             }
             Button("Cancel", role: .cancel) { taskPendingRemoval = nil }
         } message: { Text(taskPendingRemoval?.title ?? "") }
-        .alert("Delete Task Permanently?", isPresented: Binding(
+        .alert("Delete Task?", isPresented: Binding(
             get: { taskPendingDeletion != nil },
             set: { if !$0 { taskPendingDeletion = nil } }
         ), presenting: taskPendingDeletion) { task in
-            Button("Delete Permanently", role: .destructive) { taskStore.delete(taskID: task.id) }
+            Button("Delete", role: .destructive) { taskStore.delete(taskID: task.id) }
             Button("Cancel", role: .cancel) { }
         } message: { task in
             Text("“\(task.title)” will be removed from this device. This can’t be undone.")
@@ -124,7 +124,7 @@ struct TaskListView: View {
             .background {
                 if tab == .active { taskFrameReader(for: task.id) }
             }
-            .accessibilityAction(named: task.isCompleted ? "Remove Task" : "Delete Task") { requestRemoval(task) }
+            .accessibilityAction(named: task.isCompleted ? "Remove" : "Delete") { requestRemoval(task) }
             .accessibilityAction(named: "Task details") { taskToEdit = task }
             .opacity(draggedTaskID == task.id ? 0 : 1)
             .simultaneousGesture(swipeGesture(for: task))
@@ -222,7 +222,7 @@ private struct TaskRow: View {
                 .accessibilityAction { onTaskTap() }
                 .accessibilityAction(named: "Task details", onLongPress)
             if isDeleteVisible {
-                Button(task.isCompleted ? "Remove…" : "Delete", role: task.isCompleted ? nil : .destructive, action: onDelete)
+                Button(task.isCompleted ? "Remove" : "Delete", role: task.isCompleted ? nil : .destructive, action: onDelete)
                     .buttonStyle(.bordered)
                     .tint(task.isCompleted ? .accentColor : .red)
             } else {

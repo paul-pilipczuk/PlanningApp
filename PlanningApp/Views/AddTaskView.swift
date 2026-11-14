@@ -70,12 +70,12 @@ struct TaskEditorView: View {
                 if task != nil {
                     Section {
                         if let onArchive {
-                            Button("Archive Task", systemImage: "archivebox") {
+                            Button("Archive", systemImage: "archivebox") {
                                 if onArchive() { dismiss() }
                             }
                             .disabled(hasChanges)
                         }
-                        Button(task?.isCompleted == true ? "Remove Task…" : "Delete Task", role: task?.isCompleted == true ? nil : .destructive) {
+                        Button(task?.isCompleted == true ? "Remove" : "Delete", role: task?.isCompleted == true ? nil : .destructive) {
                             onRequestDelete?()
                             dismiss()
                         }

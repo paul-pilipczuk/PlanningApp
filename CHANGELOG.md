@@ -2,6 +2,12 @@
 
 All notable user-facing changes to this project are documented here.
 
+## [0.5.1] - 2026-11-13
+
+- Shorten task actions to Restore, Archive, Remove, and Delete without trailing punctuation.
+- Keep permanent-delete warnings in the confirmation message, avoiding long wrapping button titles.
+- Document shared interface wording, accessibility, and layout conventions.
+
 ## [0.5.0] - 2026-11-13
 
 ### Added
