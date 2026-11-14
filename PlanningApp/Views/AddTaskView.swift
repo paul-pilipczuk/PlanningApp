@@ -78,11 +78,19 @@ struct TaskEditorView: View {
                             }
                             .disabled(hasChanges)
                         }
-                        Button(task?.isCompleted == true ? "Remove" : "Delete", role: task?.isCompleted == true ? nil : .destructive) {
-                            onRequestDelete?()
-                            dismiss()
+                        if let task {
+                            TaskRemovalButton(task: task, onArchive: onArchive.map { archive in
+                                {
+                                    let saved = archive()
+                                    if saved { dismiss() }
+                                    return saved
+                                }
+                            }, onDelete: {
+                                onRequestDelete?()
+                                dismiss()
+                            }, fillsRow: true)
+                            .disabled(hasChanges)
                         }
-                        .disabled(hasChanges)
                     } footer: {
                         if hasChanges { Text("Save or cancel your edits before archiving or removing this task.") }
                     }

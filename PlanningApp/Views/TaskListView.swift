@@ -10,8 +10,7 @@ struct TaskListView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var taskToEdit: TaskItem?
     @State private var taskPendingDeletion: TaskItem?
-    @State private var taskPendingRemoval: TaskItem?
-    @State private var editorRemoval: TaskItem?
+    @State private var editorDeletion: TaskItem?
     @State private var taskShowingDeleteID: UUID?
     @State private var draggedTaskID: UUID?
     @State private var dragPreviewFrame: CGRect?
@@ -69,15 +68,8 @@ struct TaskListView: View {
         }
         .sheet(isPresented: $isAddingTask) { editor(task: nil) }
         .sheet(item: $taskToEdit, onDismiss: {
-            if let task = editorRemoval { editorRemoval = nil; requestRemoval(task) }
+            if let task = editorDeletion { editorDeletion = nil; requestDeletion(task) }
         }) { editor(task: $0) }
-        .confirmationDialog("Remove Completed Task?", isPresented: Binding(get: { taskPendingRemoval != nil }, set: { if !$0 { taskPendingRemoval = nil } }), titleVisibility: .visible) {
-            if let task = taskPendingRemoval {
-                Button("Archive") { taskStore.archive(taskID: task.id); taskShowingDeleteID = nil }
-                Button("Delete", role: .destructive) { taskPendingDeletion = task }
-            }
-            Button("Cancel", role: .cancel) { taskPendingRemoval = nil }
-        } message: { Text(taskPendingRemoval?.title ?? "") }
         .alert("Delete Task?", isPresented: Binding(
             get: { taskPendingDeletion != nil },
             set: { if !$0 { taskPendingDeletion = nil } }
@@ -94,17 +86,16 @@ struct TaskListView: View {
         tab == .completed ? taskStore.completedTasks : taskStore.incompleteTasks
     }
 
-    private func requestRemoval(_ task: TaskItem) {
+    private func requestDeletion(_ task: TaskItem) {
         guard let current = taskStore.tasks.first(where: { $0.id == task.id && !$0.isArchived }) else { return }
-        if current.isCompleted { taskPendingRemoval = current }
-        else { taskPendingDeletion = current }
+        taskPendingDeletion = current
     }
 
     private func editor(task: TaskItem?) -> TaskEditorView {
         TaskEditorView(task: task, groups: taskStore.groups, onSave: { title, description, groupID, reminder in
             if let task { taskStore.update(taskID: task.id, title: title, description: description, groupID: groupID, reminder: reminder) }
             else { taskStore.add(title: title, description: description, groupID: groupID, reminder: reminder) }
-        }, onCreateGroup: { taskStore.createGroup(named: $0) }, onRequestDelete: task.map { savedTask in { editorRemoval = savedTask } }, onArchive: task.flatMap { savedTask in
+        }, onCreateGroup: { taskStore.createGroup(named: $0) }, onRequestDelete: task.map { savedTask in { editorDeletion = savedTask } }, onArchive: task.flatMap { savedTask in
             savedTask.isCompleted ? { taskStore.archive(taskID: savedTask.id) } : nil
         })
     }
@@ -114,7 +105,11 @@ struct TaskListView: View {
                 onComplete: { taskStore.toggleCompletion(for: task.id) },
                 onTaskTap: { if taskShowingDeleteID == task.id { taskShowingDeleteID = nil } else { taskStore.toggleCompletion(for: task.id) } },
                 onLongPress: { taskToEdit = task },
-                onConfigure: { taskToEdit = task }, onDelete: { requestRemoval(task) },
+                onConfigure: { taskToEdit = task }, onArchive: task.isCompleted ? {
+                    let archived = taskStore.archive(taskID: task.id)
+                    if archived { taskShowingDeleteID = nil }
+                    return archived
+                } : nil, onDelete: { requestDeletion(task) },
                 onDragChanged: { drag in
                     guard tab == .active else { return }
                     beginDragging(task)
@@ -124,7 +119,6 @@ struct TaskListView: View {
             .background {
                 if tab == .active { taskFrameReader(for: task.id) }
             }
-            .accessibilityAction(named: task.isCompleted ? "Remove" : "Delete") { requestRemoval(task) }
             .accessibilityAction(named: "Task details") { taskToEdit = task }
             .opacity(draggedTaskID == task.id ? 0 : 1)
             .simultaneousGesture(swipeGesture(for: task))
@@ -134,7 +128,7 @@ struct TaskListView: View {
 
     @ViewBuilder private var dragPreview: some View {
         if let draggedTaskID, let task = taskStore.tasks.first(where: { $0.id == draggedTaskID && !$0.isCompleted }), let dragPreviewFrame {
-            TaskRow(task: task, isDeleteVisible: false, onComplete: {}, onTaskTap: {}, onLongPress: {}, onConfigure: {}, onDelete: {}, onDragChanged: { _ in }, onDragEnded: { _ in })
+            TaskRow(task: task, isDeleteVisible: false, onComplete: {}, onTaskTap: {}, onLongPress: {}, onConfigure: {}, onArchive: nil, onDelete: {}, onDragChanged: { _ in }, onDragEnded: { _ in })
                 .frame(width: dragPreviewFrame.width).scaleEffect(1.035).shadow(color: .black.opacity(0.45), radius: 14, y: 8)
                 .offset(x: dragPreviewFrame.minX, y: dragPreviewFrame.minY + dragTranslation.height).allowsHitTesting(false).accessibilityHidden(true)
         }
@@ -208,7 +202,16 @@ private final class TaskFrameCache {
 private struct TaskFramePreferenceKey: PreferenceKey { static var defaultValue: [UUID: CGRect] = [:]; static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) { value.merge(nextValue(), uniquingKeysWith: { _, new in new }) } }
 
 private struct TaskRow: View {
-    let task: TaskItem; let isDeleteVisible: Bool; let onComplete: () -> Void; let onTaskTap: () -> Void; let onLongPress: () -> Void; let onConfigure: () -> Void; let onDelete: () -> Void; let onDragChanged: (DragGesture.Value) -> Void; let onDragEnded: (DragGesture.Value) -> Void
+    let task: TaskItem
+    let isDeleteVisible: Bool
+    let onComplete: () -> Void
+    let onTaskTap: () -> Void
+    let onLongPress: () -> Void
+    let onConfigure: () -> Void
+    let onArchive: (() -> Bool)?
+    let onDelete: () -> Void
+    let onDragChanged: (DragGesture.Value) -> Void
+    let onDragEnded: (DragGesture.Value) -> Void
     @State private var touchBeganAt: Date?
     @State private var isReordering = false
 
@@ -221,8 +224,12 @@ private struct TaskRow: View {
                 .accessibilityAddTraits(.isButton)
                 .accessibilityAction { onTaskTap() }
                 .accessibilityAction(named: "Task details", onLongPress)
+                .accessibilityActions {
+                    if let onArchive { Button("Archive") { _ = onArchive() } }
+                    Button("Delete", role: .destructive, action: onDelete)
+                }
             if isDeleteVisible {
-                Button(task.isCompleted ? "Remove" : "Delete", role: task.isCompleted ? nil : .destructive, action: onDelete)
+                TaskRemovalButton(task: task, onArchive: onArchive, onDelete: onDelete)
                     .buttonStyle(.bordered)
                     .tint(task.isCompleted ? .accentColor : .red)
             } else {
