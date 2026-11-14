@@ -2,11 +2,13 @@ import SwiftUI
 
 struct TaskEditorView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var taskStore: TaskStore
     let task: TaskItem?
     let groups: [TaskGroup]
-    let onSave: (String, String, UUID?, ReminderSettings) -> Void
+    let onSave: (String, String, UUID?, ReminderSettings) -> Bool
     let onCreateGroup: (String) -> TaskGroup?
     let onRequestDelete: (() -> Void)?
+    let onArchive: (() -> Bool)?
 
     @State private var title: String
     @State private var description: String
@@ -15,12 +17,13 @@ struct TaskEditorView: View {
     @State private var newGroupName = ""
     @State private var editorGroups: [TaskGroup]
 
-    init(task: TaskItem? = nil, groups: [TaskGroup], onSave: @escaping (String, String, UUID?, ReminderSettings) -> Void, onCreateGroup: @escaping (String) -> TaskGroup?, onRequestDelete: (() -> Void)? = nil) {
+    init(task: TaskItem? = nil, groups: [TaskGroup], onSave: @escaping (String, String, UUID?, ReminderSettings) -> Bool, onCreateGroup: @escaping (String) -> TaskGroup?, onRequestDelete: (() -> Void)? = nil, onArchive: (() -> Bool)? = nil) {
         self.task = task
         self.groups = groups
         self.onSave = onSave
         self.onCreateGroup = onCreateGroup
         self.onRequestDelete = onRequestDelete
+        self.onArchive = onArchive
         _title = State(initialValue: task?.title ?? "")
         _description = State(initialValue: task?.description ?? "")
         _groupID = State(initialValue: task?.groupID)
@@ -66,11 +69,23 @@ struct TaskEditorView: View {
                 }
                 if task != nil {
                     Section {
-                        Button("Delete Task", role: .destructive) {
-                            dismiss()
-                            onRequestDelete?()
+                        if let onArchive {
+                            Button("Archive Task", systemImage: "archivebox") {
+                                if onArchive() { dismiss() }
+                            }
+                            .disabled(hasChanges)
                         }
+                        Button(task?.isCompleted == true ? "Remove Task…" : "Delete Task", role: task?.isCompleted == true ? nil : .destructive) {
+                            onRequestDelete?()
+                            dismiss()
+                        }
+                        .disabled(hasChanges)
+                    } footer: {
+                        if hasChanges { Text("Save or cancel your edits before archiving or removing this task.") }
                     }
+                }
+                if let error = taskStore.errorMessage {
+                    Section { Text(error).foregroundStyle(.red) }
                 }
             }
             .navigationTitle(task == nil ? "New Task" : "Task Details")
@@ -78,12 +93,17 @@ struct TaskEditorView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(task == nil ? "Add" : "Save") {
-                        onSave(title, description, groupID, reminder)
-                        dismiss()
+                        if onSave(title, description, groupID, reminder) { dismiss() }
                     }
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
     }
+
+    private var hasChanges: Bool {
+        guard let task else { return false }
+        return title != task.title || description != task.description || groupID != task.groupID || reminder != task.reminder
+    }
+
 }

@@ -6,8 +6,9 @@ final class NavigationUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-sample-data"]
+        app.launchArguments = ["-sample-data", "-ui-testing", "-reset-test-preferences"]
         app.launch()
+        app.launchArguments.removeAll { $0 == "-reset-test-preferences" }
     }
 
     private func scrollThroughGutter(_ list: XCUIElement) {
@@ -22,7 +23,7 @@ final class NavigationUITests: XCTestCase {
         app.buttons["tab.completed"].tap()
         XCTAssertTrue(app.staticTexts["page.title"].label == "Completed")
         app.buttons["tab.archived"].tap()
-        XCTAssertTrue(app.staticTexts["Coming soon"].exists)
+        XCTAssertTrue(app.buttons["Archived task: Archive sample plan 1"].exists)
         app.buttons["tab.settings"].tap()
         XCTAssertTrue(app.staticTexts["page.title"].label == "Settings")
         app.buttons["appearance.light"].tap()
@@ -101,7 +102,7 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(expand.exists)
     }
 
-    func testSettingsCollapseWhenContentOverflowsAndArchivedStaysExpanded() {
+    func testSettingsAndArchiveCollapseWhenContentOverflows() {
         app.terminate()
         app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         app.launch()
@@ -123,9 +124,8 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.scrollViews["archived.scroll"].exists)
         let archivedHeight = app.staticTexts["page.title"].frame.height
         app.scrollViews["archived.scroll"].swipeUp()
-        XCTAssertEqual(app.staticTexts["page.title"].frame.height, archivedHeight, accuracy: 2)
-        XCTAssertTrue(app.buttons["tab.settings"].exists)
-        XCTAssertFalse(expand.exists)
+        XCTAssertTrue(expand.waitForExistence(timeout: 3))
+        XCTAssertLessThan(app.staticTexts["page.title"].frame.height, archivedHeight)
     }
 
     func testTaskCompletionMovesBetweenTabs() {
@@ -152,6 +152,102 @@ final class NavigationUITests: XCTestCase {
         XCTAssertGreaterThan(first.frame.midY, second.frame.midY)
         XCTAssertTrue(app.buttons["tab.active"].exists)
         XCTAssertFalse(app.buttons["navigation.expand"].exists)
+    }
+
+    private func assertDisappears(_ element: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
+        let expectation = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: element)
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 4), .completed, file: file, line: line)
+    }
+
+    private func requestCompletedRemoval() {
+        app.buttons["tab.completed"].tap()
+        app.buttons["Details for Set up the planning app"].tap()
+        app.buttons["Remove Task…"].tap()
+        XCTAssertTrue(app.buttons["Archive"].waitForExistence(timeout: 3))
+    }
+
+    func testArchiveAndRestoreFromCompletedTaskDetails() {
+        requestCompletedRemoval()
+        if app.buttons["Cancel"].exists { app.buttons["Cancel"].tap() }
+        else { app.staticTexts["page.title"].tap() }
+        XCTAssertTrue(app.buttons["Mark Set up the planning app active"].exists)
+        requestCompletedRemoval()
+        app.buttons["Archive"].tap()
+        assertDisappears(app.buttons["Mark Set up the planning app active"])
+        app.buttons["tab.archived"].tap()
+        let archived = app.buttons["Archived task: Set up the planning app"]
+        XCTAssertTrue(archived.waitForExistence(timeout: 3))
+        archived.tap()
+        XCTAssertTrue(app.navigationBars["Archived Task"].waitForExistence(timeout: 3))
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Archived task details"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        app.buttons["Restore to Completed"].tap()
+        assertDisappears(archived)
+        app.buttons["tab.completed"].tap()
+        XCTAssertTrue(app.buttons["Mark Set up the planning app active"].waitForExistence(timeout: 3))
+    }
+
+    func testPermanentDeletionRequiresConfirmationAndCanBeCancelled() {
+        for appearance in ["dark", "light"] {
+            app.buttons["tab.settings"].tap()
+            app.buttons["appearance.\(appearance)"].tap()
+            requestCompletedRemoval()
+            app.buttons["Delete Permanently…"].tap()
+            let alert = app.alerts["Delete Task Permanently?"]
+            XCTAssertTrue(alert.waitForExistence(timeout: 3))
+            XCTAssertTrue(alert.buttons["Cancel"].isHittable)
+            // Allow the system material's presentation transition to finish for visual review.
+            Thread.sleep(forTimeInterval: 0.6)
+            let confirmation = XCTAttachment(screenshot: app.screenshot())
+            confirmation.name = "Settled native deletion confirmation — \(appearance)"
+            confirmation.lifetime = .keepAlways
+            add(confirmation)
+            alert.buttons["Cancel"].tap()
+            XCTAssertTrue(app.buttons["Mark Set up the planning app active"].exists)
+        }
+        requestCompletedRemoval()
+        app.buttons["Delete Permanently…"].tap()
+        XCTAssertTrue(app.alerts["Delete Task Permanently?"].waitForExistence(timeout: 3))
+        app.alerts.buttons["Delete Permanently"].tap()
+        assertDisappears(app.buttons["Mark Set up the planning app active"])
+        app.buttons["tab.archived"].tap()
+        XCTAssertFalse(app.buttons["Archived task: Set up the planning app"].exists)
+    }
+
+    func testArchivedTaskDeletionCanBeCancelledBeforeFinalConfirmation() {
+        app.buttons["tab.archived"].tap()
+        let task = app.buttons["Archived task: Archive sample plan 1"]
+        XCTAssertTrue(task.waitForExistence(timeout: 3))
+        task.tap()
+        app.buttons["Delete Permanently…"].tap()
+        XCTAssertTrue(app.alerts["Delete Task Permanently?"].waitForExistence(timeout: 3))
+        app.alerts.buttons["Cancel"].tap()
+        XCTAssertTrue(app.navigationBars["Archived Task"].exists)
+        app.buttons["Delete Permanently…"].tap()
+        XCTAssertTrue(app.alerts["Delete Task Permanently?"].waitForExistence(timeout: 3))
+        app.alerts.buttons["Delete Permanently"].tap()
+        assertDisappears(app.navigationBars["Archived Task"])
+        assertDisappears(task)
+    }
+
+    func testNavigationPreferencePersistsAndKeepsBarExpandedWhileHeadingCompacts() {
+        app.buttons["tab.settings"].tap()
+        let toggle = app.switches["settings.keepNavigationExpanded"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 3))
+        toggle.tap()
+        app.terminate()
+        app.launch()
+        app.buttons["tab.completed"].tap()
+        let initialHeight = app.staticTexts["page.title"].frame.height
+        app.scrollViews["taskList.completed"].swipeUp()
+        XCTAssertTrue(app.buttons["tab.settings"].exists)
+        XCTAssertFalse(app.buttons["navigation.expand"].exists)
+        XCTAssertLessThan(app.staticTexts["page.title"].frame.height, initialHeight)
+        app.buttons["tab.settings"].tap()
+        XCTAssertEqual(toggle.value as? String, "1")
+        toggle.tap()
     }
 
     func testTaskDetailsAndCreationRemainAvailable() {

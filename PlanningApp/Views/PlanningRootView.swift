@@ -1,6 +1,9 @@
 import SwiftUI
+import UIKit
 
 struct PlanningRootView: View {
+    @EnvironmentObject private var preferences: AppPreferences
+    @EnvironmentObject private var taskStore: TaskStore
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedTab: PlanningTab = .active
@@ -13,7 +16,22 @@ struct PlanningRootView: View {
                 PlanningPageHeader(tab: selectedTab, isCompact: navigation.isHeaderCompact) {
                     isAddingTask = true
                 }
+                .disabled(taskStore.hasLoadFailure)
                 .zIndex(1)
+                if !taskStore.hasLoadFailure, let message = taskStore.errorMessage ?? taskStore.feedbackMessage {
+                    HStack(alignment: .top) {
+                        Text(message).font(.footnote).lineLimit(3).accessibilityLabel(message)
+                        Spacer(minLength: 8)
+                        Button {
+                            taskStore.dismissError()
+                            taskStore.feedbackMessage = nil
+                        } label: { Image(systemName: "xmark.circle.fill").frame(width: 44, height: 44) }
+                        .accessibilityLabel("Dismiss message")
+                    }
+                    .padding(.horizontal, 16)
+                    .background(Color(uiColor: .secondarySystemBackground))
+                    .accessibilityIdentifier("task.feedback")
+                }
                 ZStack {
                     tabContent
                         .id(selectedTab)
@@ -26,10 +44,14 @@ struct PlanningRootView: View {
             .scrollIndicators(.hidden)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+        .onChange(of: preferences.keepNavigationExpanded) { _, _ in navigation.expand() }
+        .onChange(of: taskStore.feedbackMessage) { _, message in
+            if let message { UIAccessibility.post(notification: .announcement, argument: message) }
+        }
         // Anchor navigation to the window-sized stack, independently of page layout.
         .overlay(alignment: .bottom) {
             FloatingNavigationBar(selectedTab: selectedTab,
-                                  isCollapsed: navigation.isCollapsed && !voiceOverEnabled,
+                                  isCollapsed: navigation.isCollapsed && !voiceOverEnabled && !preferences.keepNavigationExpanded,
                                   onSelect: selectTab,
                                   onExpand: { navigation.expand() })
                 .padding(.horizontal, 16)
@@ -41,25 +63,23 @@ struct PlanningRootView: View {
     @ViewBuilder
     private var tabContent: some View {
         let tab = selectedTab
-        switch tab {
-        case .active, .completed:
-            TaskListView(tab: tab, isAddingTask: $isAddingTask, onScrollOffset: { offset in
-                reportScroll(offset, from: tab)
-            })
-        case .archived:
-            GeometryReader { proxy in
-                ScrollView {
-                    ContentUnavailableView("Coming soon", systemImage: "archivebox",
-                                           description: Text("Archived plans will have a home here."))
-                        .frame(maxWidth: .infinity, minHeight: max(0, proxy.size.height - 92))
-                        .padding(.bottom, 92)
-                        .background(TaskScrollContentReader())
-                }
-                .modifier(TaskScrollObserver { reportScroll($0, from: .archived) })
-                .accessibilityIdentifier("archived.scroll")
+        if taskStore.hasLoadFailure && tab != .settings {
+            ContentUnavailableView {
+                Label("Couldn’t Load Plans", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text(taskStore.errorMessage ?? "Your saved file has been left untouched.")
+            } actions: {
+                Button("Try Again") { taskStore.reload() }.buttonStyle(.bordered)
             }
-        case .settings:
-            AppSettingsView(onScrollOffset: { reportScroll($0, from: .settings) })
+        } else {
+            switch tab {
+            case .active, .completed:
+                TaskListView(tab: tab, isAddingTask: $isAddingTask, onScrollOffset: { reportScroll($0, from: tab) })
+            case .archived:
+                ArchiveView(onScrollOffset: { reportScroll($0, from: .archived) })
+            case .settings:
+                AppSettingsView(onScrollOffset: { reportScroll($0, from: .settings) })
+            }
         }
     }
 
@@ -138,20 +158,23 @@ private struct PlanningPageHeader: View {
 /// It does not blur or snapshot the full list, and never intercepts touches.
 private struct HeaderScrollEdge: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        ZStack {
-            if !reduceTransparency {
+        if reduceTransparency || contrast == .increased {
+            Color(uiColor: .systemBackground)
+        } else {
+            ZStack {
                 Rectangle()
                     .fill(.ultraThinMaterial)
                     .mask(LinearGradient(colors: [.white, .clear], startPoint: .top, endPoint: .bottom))
+                Color(uiColor: .systemBackground)
+                    .mask(LinearGradient(stops: [
+                        .init(color: .white, location: 0),
+                        .init(color: .white.opacity(0.85), location: 0.2),
+                        .init(color: .clear, location: 1)
+                    ], startPoint: .top, endPoint: .bottom))
             }
-            Color(uiColor: .systemBackground)
-                .mask(LinearGradient(stops: [
-                    .init(color: .white, location: 0),
-                    .init(color: .white.opacity(0.85), location: 0.2),
-                    .init(color: .clear, location: 1)
-                ], startPoint: .top, endPoint: .bottom))
         }
     }
 }

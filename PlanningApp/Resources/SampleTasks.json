@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "tasks": [
     {
       "id": "d33a1736-b8e2-5896-b275-87a5c479bf28",
@@ -712,6 +712,198 @@
       "description": "Sample plan \u2014 edit freely in this demo.",
       "groupID": null,
       "isCompleted": true,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "f5a4de2f-79bb-5198-bda3-a376a0c04f17",
+      "title": "Archive sample plan 1",
+      "description": "A saved plan for testing archive details, restoration, and removal.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": true,
+      "archivedAt": 815184000.0,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "1e29195e-92f5-59cf-92cd-093492500a24",
+      "title": "Archive sample plan 2",
+      "description": "A saved plan for testing archive details, restoration, and removal.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": true,
+      "archivedAt": 815097600.0,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "0c143938-d89b-5aa8-b877-c818e9d6ab9b",
+      "title": "Archive sample plan 3",
+      "description": "A saved plan for testing archive details, restoration, and removal.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": true,
+      "archivedAt": 815011200.0,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "9944d92e-ede9-524a-8759-a0f3ac819bd4",
+      "title": "Archive sample plan 4",
+      "description": "A saved plan for testing archive details, restoration, and removal.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": true,
+      "archivedAt": 814924800.0,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "3a864192-88ce-59e1-be1a-f24c4242cbbf",
+      "title": "Archive sample plan 5",
+      "description": "A saved plan for testing archive details, restoration, and removal.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": true,
+      "archivedAt": 814838400.0,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "3cdc69f3-f5f4-5f75-b19f-032b4f3bbdb9",
+      "title": "Archive sample plan 6",
+      "description": "A saved plan for testing archive details, restoration, and removal.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": true,
+      "archivedAt": 814752000.0,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "94c4eee7-f637-56bc-b923-b51c94005b8b",
+      "title": "Archive sample plan 7",
+      "description": "A saved plan for testing archive details, restoration, and removal.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": true,
+      "archivedAt": 814665600.0,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "108e7d7d-76cd-527f-9181-2c2484bab735",
+      "title": "Archive sample plan 8",
+      "description": "A saved plan for testing archive details, restoration, and removal.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": true,
+      "archivedAt": 814579200.0,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "4f08e540-59e7-5417-bc98-9cc1432abcc4",
+      "title": "Archive sample plan 9",
+      "description": "A saved plan for testing archive details, restoration, and removal.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": true,
+      "archivedAt": 814492800.0,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "3f14e879-ba4e-59c8-802d-c3a4c2161956",
+      "title": "Archive sample plan 10",
+      "description": "A saved plan for testing archive details, restoration, and removal.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": true,
+      "archivedAt": 814406400.0,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "f2287edf-9730-5932-9185-fc8aaf00d9cc",
+      "title": "Archive sample plan 11",
+      "description": "A saved plan for testing archive details, restoration, and removal.",
+      "groupID": "2ad6ee26-6ce2-599c-a474-b493c1afd50a",
+      "isCompleted": true,
+      "archivedAt": 814320000.0,
+      "reminder": {
+        "isEnabled": false,
+        "frequency": "daily",
+        "hour": 9,
+        "minute": 0,
+        "weekday": 2,
+        "repeatsUntilCompleted": true
+      }
+    },
+    {
+      "id": "ea44fd22-a41b-5fe1-8264-87a61eaf2628",
+      "title": "Archive sample plan 12",
+      "description": "A saved plan for testing archive details, restoration, and removal.",
+      "groupID": "9af80e3e-f57d-5b52-9f0c-5bb30350f75f",
+      "isCompleted": true,
+      "archivedAt": 814233600.0,
       "reminder": {
         "isEnabled": false,
         "frequency": "daily",

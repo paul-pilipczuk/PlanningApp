@@ -27,6 +27,7 @@
 		B10000000000000000000121 = {isa = PBXBuildFile; fileRef = B10000000000000000000021; };
 		B20000000000000000000120 = {isa = PBXBuildFile; fileRef = B20000000000000000000020; };
 		A10000000000000000000028 /* AppPreferences.swift */ = {isa = PBXBuildFile; fileRef = A20000000000000000000028; };
+		A10000000000000000000029 /* ArchiveView.swift */ = {isa = PBXBuildFile; fileRef = A20000000000000000000029; };
 		B10000000000000000000122 /* ArchiveTests.swift */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022; };
 		B10000000000000000000123 /* AppPreferencesTests.swift */ = {isa = PBXBuildFile; fileRef = B10000000000000000000023; };
 /* End PBXBuildFile section */
@@ -55,6 +56,7 @@
 		B20000000000000000000020 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationUITests.swift; sourceTree = "<group>"; };
 		B20000000000000000000002 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = PlanningAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000028 /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
+		A20000000000000000000029 /* ArchiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveView.swift; sourceTree = "<group>"; };
 		B10000000000000000000022 /* ArchiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveTests.swift; sourceTree = "<group>"; };
 		B10000000000000000000023 /* AppPreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferencesTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -124,7 +126,7 @@
 		};
 		A40000000000000000000006 /* Views */ = {
 			isa = PBXGroup;
-			children = (
+			children = (A20000000000000000000029,
 				A20000000000000000000025 /* TaskScrollObserver.swift */,
 				A20000000000000000000024 /* AppSettingsView.swift */,
 				A20000000000000000000023 /* FloatingNavigationBar.swift */,
@@ -212,7 +214,7 @@
 		A30000000000000000000002 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = (A10000000000000000000028,
+			files = (A10000000000000000000029,A10000000000000000000028,
 				A10000000000000000000026 /* SampleTaskData.swift */,
 				A10000000000000000000025 /* TaskScrollObserver.swift */,
 				A10000000000000000000024 /* AppSettingsView.swift */,
@@ -281,7 +283,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = T5G829UR2U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -294,7 +296,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.4.2;
+				MARKETING_VERSION = 0.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.local.PlanningApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -310,7 +312,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = T5G829UR2U;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -323,7 +325,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.4.2;
+				MARKETING_VERSION = 0.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.local.PlanningApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

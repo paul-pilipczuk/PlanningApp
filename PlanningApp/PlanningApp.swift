@@ -3,13 +3,14 @@ import SwiftUI
 @main
 struct PlanningApp: App {
     @StateObject private var taskStore = TaskStore()
-    @AppStorage("appearance") private var appearance: AppAppearance = .dark
+    @StateObject private var preferences = AppPreferences()
 
     var body: some Scene {
         WindowGroup {
             PlanningRootView()
                 .environmentObject(taskStore)
-                .preferredColorScheme(appearance.colorScheme)
+                .environmentObject(preferences)
+                .preferredColorScheme(preferences.appearance.colorScheme)
         }
     }
 }

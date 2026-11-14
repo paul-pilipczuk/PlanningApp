@@ -6,8 +6,12 @@ struct TaskListView: View {
     let onScrollOffset: (CGFloat) -> Void
 
     @EnvironmentObject private var taskStore: TaskStore
+    @EnvironmentObject private var preferences: AppPreferences
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var taskToEdit: TaskItem?
     @State private var taskPendingDeletion: TaskItem?
+    @State private var taskPendingRemoval: TaskItem?
+    @State private var editorRemoval: TaskItem?
     @State private var taskShowingDeleteID: UUID?
     @State private var draggedTaskID: UUID?
     @State private var dragPreviewFrame: CGRect?
@@ -44,7 +48,7 @@ struct TaskListView: View {
                 .padding(16)
                 .padding(.bottom, 92)
                 .background(TaskScrollContentReader())
-                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: taskStore.tasks)
+                .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: taskStore.tasks)
             }
             .modifier(TaskScrollObserver { offset in
                 guard draggedTaskID == nil else { return }
@@ -57,29 +61,52 @@ struct TaskListView: View {
         .background(Color(uiColor: .systemBackground))
         .coordinateSpace(name: "taskList")
         .onPreferenceChange(TaskFramePreferenceKey.self) { taskFrames.frames = $0 }
-        .sensoryFeedback(.selection, trigger: reorderFeedback)
+        .sensoryFeedback(.selection, trigger: reorderFeedback) { _, _ in preferences.hapticFeedback }
         .onChange(of: tab) { _, _ in
             endDragging()
             taskShowingDeleteID = nil
             taskFrames.frames = [:]
         }
         .sheet(isPresented: $isAddingTask) { editor(task: nil) }
-        .sheet(item: $taskToEdit) { editor(task: $0) }
-        .alert("Delete Task?", isPresented: Binding(get: { taskPendingDeletion != nil }, set: { if !$0 { taskPendingDeletion = nil } })) {
-            Button("Delete", role: .destructive) { if let taskPendingDeletion { taskStore.delete(taskID: taskPendingDeletion.id) }; taskPendingDeletion = nil }
-            Button("Cancel", role: .cancel) { taskPendingDeletion = nil }
-        } message: { Text("This task will be removed permanently.") }
+        .sheet(item: $taskToEdit, onDismiss: {
+            if let task = editorRemoval { editorRemoval = nil; requestRemoval(task) }
+        }) { editor(task: $0) }
+        .confirmationDialog("Remove Completed Task?", isPresented: Binding(get: { taskPendingRemoval != nil }, set: { if !$0 { taskPendingRemoval = nil } }), titleVisibility: .visible) {
+            if let task = taskPendingRemoval {
+                Button("Archive") { taskStore.archive(taskID: task.id); taskShowingDeleteID = nil }
+                Button("Delete Permanently…", role: .destructive) { taskPendingDeletion = task }
+            }
+            Button("Cancel", role: .cancel) { taskPendingRemoval = nil }
+        } message: { Text(taskPendingRemoval?.title ?? "") }
+        .alert("Delete Task Permanently?", isPresented: Binding(
+            get: { taskPendingDeletion != nil },
+            set: { if !$0 { taskPendingDeletion = nil } }
+        ), presenting: taskPendingDeletion) { task in
+            Button("Delete Permanently", role: .destructive) { taskStore.delete(taskID: task.id) }
+            Button("Cancel", role: .cancel) { }
+        } message: { task in
+            Text("“\(task.title)” will be removed from this device. This can’t be undone.")
+        }
+
     }
 
     private var visibleTasks: [TaskItem] {
         tab == .completed ? taskStore.completedTasks : taskStore.incompleteTasks
     }
 
+    private func requestRemoval(_ task: TaskItem) {
+        guard let current = taskStore.tasks.first(where: { $0.id == task.id && !$0.isArchived }) else { return }
+        if current.isCompleted { taskPendingRemoval = current }
+        else { taskPendingDeletion = current }
+    }
+
     private func editor(task: TaskItem?) -> TaskEditorView {
         TaskEditorView(task: task, groups: taskStore.groups, onSave: { title, description, groupID, reminder in
             if let task { taskStore.update(taskID: task.id, title: title, description: description, groupID: groupID, reminder: reminder) }
             else { taskStore.add(title: title, description: description, groupID: groupID, reminder: reminder) }
-        }, onCreateGroup: { taskStore.createGroup(named: $0) }, onRequestDelete: task.map { savedTask in { taskPendingDeletion = savedTask } })
+        }, onCreateGroup: { taskStore.createGroup(named: $0) }, onRequestDelete: task.map { savedTask in { editorRemoval = savedTask } }, onArchive: task.flatMap { savedTask in
+            savedTask.isCompleted ? { taskStore.archive(taskID: savedTask.id) } : nil
+        })
     }
 
     private func taskRow(_ task: TaskItem) -> some View {
@@ -87,7 +114,7 @@ struct TaskListView: View {
                 onComplete: { taskStore.toggleCompletion(for: task.id) },
                 onTaskTap: { if taskShowingDeleteID == task.id { taskShowingDeleteID = nil } else { taskStore.toggleCompletion(for: task.id) } },
                 onLongPress: { taskToEdit = task },
-                onConfigure: { taskToEdit = task }, onDelete: { taskPendingDeletion = task },
+                onConfigure: { taskToEdit = task }, onDelete: { requestRemoval(task) },
                 onDragChanged: { drag in
                     guard tab == .active else { return }
                     beginDragging(task)
@@ -97,6 +124,8 @@ struct TaskListView: View {
             .background {
                 if tab == .active { taskFrameReader(for: task.id) }
             }
+            .accessibilityAction(named: task.isCompleted ? "Remove Task" : "Delete Task") { requestRemoval(task) }
+            .accessibilityAction(named: "Task details") { taskToEdit = task }
             .opacity(draggedTaskID == task.id ? 0 : 1)
             .simultaneousGesture(swipeGesture(for: task))
     }
@@ -119,7 +148,7 @@ struct TaskListView: View {
         }
     }
 
-    private func beginDragging(_ task: TaskItem) { guard draggedTaskID == nil, let frame = taskFrames.frames[task.id] else { return }; withAnimation(.spring(response: 0.24, dampingFraction: 0.8)) { draggedTaskID = task.id; dragPreviewFrame = frame }; hasPendingReorder = false }
+    private func beginDragging(_ task: TaskItem) { guard draggedTaskID == nil, let frame = taskFrames.frames[task.id] else { return }; withAnimation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.8)) { draggedTaskID = task.id; dragPreviewFrame = frame }; hasPendingReorder = false }
     private func updateTaskOrder(for location: CGPoint) {
         guard let draggedTaskID, let dragged = taskStore.tasks.first(where: { $0.id == draggedTaskID && !$0.isCompleted }) else { return }
         let candidates = taskStore.tasks.filter { !$0.isCompleted && $0.groupID == dragged.groupID }
@@ -149,7 +178,7 @@ struct TaskListView: View {
     }
     private func endDragging() {
         if hasPendingReorder { taskStore.persistTaskOrder() }
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { draggedTaskID = nil; dragPreviewFrame = nil; dragTranslation = .zero }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { draggedTaskID = nil; dragPreviewFrame = nil; dragTranslation = .zero }
         hasPendingReorder = false
     }
 
@@ -193,9 +222,9 @@ private struct TaskRow: View {
                 .accessibilityAction { onTaskTap() }
                 .accessibilityAction(named: "Task details", onLongPress)
             if isDeleteVisible {
-                Button("Delete", role: .destructive, action: onDelete)
+                Button(task.isCompleted ? "Remove…" : "Delete", role: task.isCompleted ? nil : .destructive, action: onDelete)
                     .buttonStyle(.bordered)
-                    .tint(.red)
+                    .tint(task.isCompleted ? .accentColor : .red)
             } else {
                 Button(action: onConfigure) {
                     Image(systemName: "gearshape")
