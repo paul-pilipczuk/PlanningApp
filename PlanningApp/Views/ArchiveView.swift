@@ -2,9 +2,13 @@ import SwiftUI
 
 struct ArchiveView: View {
     let onScrollOffset: (CGFloat) -> Void
+    let onTaskCreated: () -> Void
     @EnvironmentObject private var taskStore: TaskStore
     @State private var selectedTask: TaskItem?
     @State private var pendingDeletion: TaskItem?
+    @State private var pendingCopy: TaskItem?
+    @State private var copyDraft: TaskItem?
+    @State private var didCreateTask = false
 
     var body: some View {
         let archivedTasks = taskStore.archivedTasks
@@ -34,6 +38,7 @@ struct ArchiveView: View {
                                 .accessibilityLabel("Archived task: \(task.title)")
                                 Menu {
                                     Button("Restore", systemImage: "arrow.uturn.backward") { taskStore.restore(taskID: task.id) }
+                                    Button("Copy", systemImage: "doc.on.doc") { copyDraft = task.newTaskDraft(in: taskStore.groups) }
                                     Button("Delete", systemImage: "trash", role: .destructive) { pendingDeletion = task }
                                 } label: {
                                     Image(systemName: "ellipsis.circle").frame(width: 44, height: 44)
@@ -43,6 +48,7 @@ struct ArchiveView: View {
                             .padding(14)
                             .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
                             .accessibilityAction(named: "Restore") { taskStore.restore(taskID: task.id) }
+                            .accessibilityAction(named: "Copy") { copyDraft = task.newTaskDraft(in: taskStore.groups) }
                             .accessibilityAction(named: "Delete") { pendingDeletion = task }
                         }
                     }
@@ -54,7 +60,26 @@ struct ArchiveView: View {
             .modifier(TaskScrollObserver(onOffsetChange: onScrollOffset))
             .accessibilityIdentifier("archived.scroll")
         }
-        .sheet(item: $selectedTask) { task in ArchivedTaskDetails(taskID: task.id) }
+        .sheet(item: $selectedTask, onDismiss: {
+            if let pendingCopy {
+                copyDraft = pendingCopy
+                self.pendingCopy = nil
+            }
+        }) { task in
+            ArchivedTaskDetails(taskID: task.id) { source in pendingCopy = source.newTaskDraft(in: taskStore.groups) }
+        }
+        .sheet(item: $copyDraft, onDismiss: {
+            if didCreateTask {
+                didCreateTask = false
+                onTaskCreated()
+            }
+        }) { draft in
+            TaskEditorView(draft: draft, groups: taskStore.groups, onSave: { title, description, groupID, reminder in
+                let saved = taskStore.add(title: title, description: description, groupID: groupID, reminder: reminder)
+                didCreateTask = saved
+                return saved
+            }, onCreateGroup: { taskStore.createGroup(named: $0) })
+        }
         .alert("Delete Task?", isPresented: Binding(
             get: { pendingDeletion != nil },
             set: { if !$0 { pendingDeletion = nil } }
@@ -70,6 +95,7 @@ struct ArchiveView: View {
 
 private struct ArchivedTaskDetails: View {
     let taskID: UUID
+    let onCopy: (TaskItem) -> Void
     @EnvironmentObject private var taskStore: TaskStore
     @Environment(\.dismiss) private var dismiss
     @State private var confirmingDeletion = false
@@ -90,8 +116,12 @@ private struct ArchivedTaskDetails: View {
                         Button("Restore", systemImage: "arrow.uturn.backward") {
                             if taskStore.restore(taskID: taskID) { dismiss() }
                         }
+                        Button("Copy", systemImage: "doc.on.doc") {
+                            onCopy(task)
+                            dismiss()
+                        }
                         Button("Delete", role: .destructive) { confirmingDeletion = true }
-                    } footer: { Text("Archived tasks don’t send reminders. Restoring keeps this task completed.") }
+                    } footer: { Text("Archived tasks don’t send reminders. Restore returns to Completed. Copy starts a new active task after you add it.") }
                     if let error = taskStore.errorMessage { Section { Text(error).foregroundStyle(.red) } }
                 } else {
                     Text("This task is no longer archived.")

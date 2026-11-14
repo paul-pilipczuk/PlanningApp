@@ -159,6 +159,41 @@ final class ArchiveTests: XCTestCase {
         }
     }
 
+    func testCopyDraftCreatesDistinctActiveTaskAndPreservesArchiveAcrossRelaunch() throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let group = TaskGroup(name: "Work")
+        var reminder = ReminderSettings(hour: 9, minute: 30, weekday: 2)
+        reminder.isEnabled = true
+        let original = TaskItem(title: "Reusable plan", description: "Full instructions", groupID: group.id,
+                                isCompleted: true, reminder: reminder, archivedAt: Date(timeIntervalSince1970: 100))
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try JSONEncoder().encode(PlanningData(tasks: [original], groups: [group])).write(to: url)
+        let store = TaskStore(storageURL: url, notifications: nil)
+        let draft = original.newTaskDraft(in: store.groups)
+        XCTAssertNotEqual(draft.id, original.id)
+        XCTAssertFalse(draft.isCompleted)
+        XCTAssertFalse(draft.isArchived)
+        XCTAssertEqual(draft.reminder, reminder)
+        XCTAssertEqual(store.tasks, [original], "Preparing or discarding a copy never mutates storage")
+        XCTAssertTrue(store.add(title: draft.title, description: draft.description, groupID: draft.groupID, reminder: draft.reminder))
+        let reopened = TaskStore(storageURL: url, notifications: nil)
+        let copy = try XCTUnwrap(reopened.incompleteTasks.first)
+        XCTAssertNotEqual(copy.id, original.id)
+        XCTAssertEqual(copy.title, original.title)
+        XCTAssertEqual(copy.description, original.description)
+        XCTAssertEqual(copy.groupID, group.id)
+        XCTAssertEqual(copy.reminder, original.reminder)
+        XCTAssertEqual(reopened.archivedTasks, [original])
+    }
+
+    func testCopyOfTaskWithMissingGroupStartsInGeneral() {
+        let original = TaskItem(title: "Legacy archive", groupID: UUID(), isCompleted: true, archivedAt: Date())
+        let draft = original.newTaskDraft(in: [TaskGroup(name: "Different group")])
+        XCTAssertNil(draft.groupID)
+        XCTAssertNotNil(original.groupID)
+    }
+
     private func temporaryURL() -> URL {
         FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathComponent("tasks.json")
     }

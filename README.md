@@ -29,7 +29,7 @@ This does not claim to solve every accessibility need. It is a foundation intend
 | Press and hold a task | Lifts it above the list while nearby tasks preview their new positions |
 | Enable notifications | Chooses daily or weekly timing, a time of day, and whether to repeat until completion |
 
-The floating bottom bar has four destinations: **Active**, **Completed**, **Archived**, and **Settings**. Active shows grouped unfinished plans; Completed shows finished plans with a checkmark, strikethrough text, and reduced emphasis. Archived holds completed tasks you choose to keep, with saved details, restoration to Completed, and confirmed permanent deletion.
+The floating bottom bar has four destinations: **Active**, **Completed**, **Archived**, and **Settings**. Active shows grouped unfinished plans; Completed shows finished plans with a checkmark, strikethrough text, and reduced emphasis. Archived holds completed tasks you choose to keep, with saved details, restoration to Completed, Copy into a prefilled new task, and confirmed permanent deletion.
 
 Scrolling down through Active, Completed, Archived, or Settings collapses the bar into a circle at the bottom left. Tap that circle to expand navigation. It stays collapsed when scrolling back up; selecting another tab expands it and starts that list at the top. The bar overlays the list without changing its viewport; end padding lets the last task scroll above it. The bar stays anchored while switching tabs, and the selection highlight slides between destinations.
 

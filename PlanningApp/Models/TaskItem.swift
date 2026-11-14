@@ -59,6 +59,13 @@ struct TaskItem: Codable, Identifiable, Equatable {
         self.archivedAt = archivedAt
     }
 
+    /// A copy is a new active draft; preparing it has no persistence or reminder effects.
+    func newTaskDraft(in groups: [TaskGroup]) -> TaskItem {
+        TaskItem(title: title, description: description,
+                 groupID: groups.contains(where: { $0.id == groupID }) ? groupID : nil,
+                 reminder: reminder)
+    }
+
     private enum CodingKeys: String, CodingKey {
         case id, title, description, groupID, isCompleted, reminder, archivedAt
     }
