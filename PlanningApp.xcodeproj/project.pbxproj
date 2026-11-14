@@ -26,6 +26,9 @@
 		B10000000000000000000120 = {isa = PBXBuildFile; fileRef = B10000000000000000000020; };
 		B10000000000000000000121 = {isa = PBXBuildFile; fileRef = B10000000000000000000021; };
 		B20000000000000000000120 = {isa = PBXBuildFile; fileRef = B20000000000000000000020; };
+		A10000000000000000000028 /* AppPreferences.swift */ = {isa = PBXBuildFile; fileRef = A20000000000000000000028; };
+		B10000000000000000000122 /* ArchiveTests.swift */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022; };
+		B10000000000000000000123 /* AppPreferencesTests.swift */ = {isa = PBXBuildFile; fileRef = B10000000000000000000023; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -51,6 +54,9 @@
 		B10000000000000000000002 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = PlanningAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20000000000000000000020 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationUITests.swift; sourceTree = "<group>"; };
 		B20000000000000000000002 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = PlanningAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000028 /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
+		B10000000000000000000022 /* ArchiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000023 /* AppPreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferencesTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,7 +104,7 @@
 		};
 		A40000000000000000000004 /* Models */ = {
 			isa = PBXGroup;
-			children = (
+			children = (A20000000000000000000028,
 				A20000000000000000000021 /* AppAppearance.swift */,
 				A20000000000000000000020 /* FloatingNavigationState.swift */,
 				A20000000000000000000002 /* TaskItem.swift */,
@@ -131,7 +137,7 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
-		B10000000000000000000009 = {isa = PBXGroup; children = (B10000000000000000000020,B10000000000000000000021,); path = PlanningAppTests; sourceTree = "<group>"; };
+		B10000000000000000000009 = {isa = PBXGroup; children = (B10000000000000000000023,B10000000000000000000022,B10000000000000000000020,B10000000000000000000021,); path = PlanningAppTests; sourceTree = "<group>"; };
 		B20000000000000000000009 = {isa = PBXGroup; children = (B20000000000000000000020,); path = PlanningAppUITests; sourceTree = "<group>"; };
 		A40000000000000000000007 = {isa = PBXGroup; children = (A20000000000000000000027,); path = Resources; sourceTree = "<group>"; };
 /* End PBXGroup section */
@@ -206,7 +212,7 @@
 		A30000000000000000000002 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = (
+			files = (A10000000000000000000028,
 				A10000000000000000000026 /* SampleTaskData.swift */,
 				A10000000000000000000025 /* TaskScrollObserver.swift */,
 				A10000000000000000000024 /* AppSettingsView.swift */,
@@ -225,7 +231,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		B10000000000000000000003 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B10000000000000000000120,B10000000000000000000121,); runOnlyForDeploymentPostprocessing = 0; };
+		B10000000000000000000003 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B10000000000000000000123,B10000000000000000000122,B10000000000000000000120,B10000000000000000000121,); runOnlyForDeploymentPostprocessing = 0; };
 		B20000000000000000000003 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B20000000000000000000120,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 

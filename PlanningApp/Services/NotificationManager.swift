@@ -10,8 +10,8 @@ final class NotificationManager {
     func schedule(for task: TaskItem) async {
         cancel(for: task.id)
 
-        guard task.reminder.isEnabled, !task.isCompleted else { return }
-        guard await requestAuthorization() else { return }
+        guard !Task.isCancelled, task.reminder.isEnabled, !task.isCompleted, !task.isArchived else { return }
+        guard await requestAuthorization(), !Task.isCancelled else { return }
 
         let content = UNMutableNotificationContent()
         content.title = "Task reminder"
@@ -27,7 +27,9 @@ final class NotificationManager {
         )
 
         do {
+            guard !Task.isCancelled else { return }
             try await center.add(request)
+            if Task.isCancelled { cancel(for: task.id) }
         } catch {
             return
         }

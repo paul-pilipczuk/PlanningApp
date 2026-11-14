@@ -37,6 +37,9 @@ struct TaskItem: Codable, Identifiable, Equatable {
     var groupID: UUID?
     var isCompleted: Bool
     var reminder: ReminderSettings
+    var archivedAt: Date?
+
+    var isArchived: Bool { archivedAt != nil }
 
     init(
         id: UUID = UUID(),
@@ -44,7 +47,8 @@ struct TaskItem: Codable, Identifiable, Equatable {
         description: String = "",
         groupID: UUID? = nil,
         isCompleted: Bool = false,
-        reminder: ReminderSettings = ReminderSettings()
+        reminder: ReminderSettings = ReminderSettings(),
+        archivedAt: Date? = nil
     ) {
         self.id = id
         self.title = title
@@ -52,10 +56,11 @@ struct TaskItem: Codable, Identifiable, Equatable {
         self.groupID = groupID
         self.isCompleted = isCompleted
         self.reminder = reminder
+        self.archivedAt = archivedAt
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, description, groupID, isCompleted, reminder
+        case id, title, description, groupID, isCompleted, reminder, archivedAt
     }
 
     init(from decoder: Decoder) throws {
@@ -66,6 +71,7 @@ struct TaskItem: Codable, Identifiable, Equatable {
         groupID = try values.decodeIfPresent(UUID.self, forKey: .groupID)
         isCompleted = try values.decode(Bool.self, forKey: .isCompleted)
         reminder = try values.decode(ReminderSettings.self, forKey: .reminder)
+        archivedAt = try values.decodeIfPresent(Date.self, forKey: .archivedAt)
     }
 }
 
@@ -88,7 +94,7 @@ struct TaskSection: Identifiable {
 }
 
 struct PlanningData: Codable {
-    var version: Int = 2
+    var version: Int = 3
     var tasks: [TaskItem]
     var groups: [TaskGroup]
 }
