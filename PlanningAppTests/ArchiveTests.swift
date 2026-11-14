@@ -194,6 +194,20 @@ final class ArchiveTests: XCTestCase {
         XCTAssertNotNil(original.groupID)
     }
 
+    func testCompletedCopyLeavesOriginalCompletedAndAddsActiveVariation() throws {
+        let original = TaskItem(title: "Finished plan", description: "Reuse these details", isCompleted: true)
+        let store = TaskStore(sampleData: PlanningData(tasks: [original], groups: []))
+        let draft = original.newTaskDraft(in: store.groups)
+        XCTAssertTrue(store.add(title: draft.title + " variation", description: draft.description,
+                                groupID: draft.groupID, reminder: draft.reminder))
+        let copy = try XCTUnwrap(store.incompleteTasks.first)
+        XCTAssertNotEqual(copy.id, original.id)
+        XCTAssertEqual(copy.title, "Finished plan variation")
+        XCTAssertEqual(copy.description, original.description)
+        XCTAssertEqual(store.completedTasks, [original])
+        XCTAssertTrue(store.archivedTasks.isEmpty)
+    }
+
     private func temporaryURL() -> URL {
         FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathComponent("tasks.json")
     }

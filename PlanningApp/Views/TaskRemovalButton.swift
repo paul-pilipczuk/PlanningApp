@@ -6,7 +6,6 @@ struct TaskRemovalButton: View {
     let task: TaskItem
     let onArchive: (() -> Bool)?
     let onDelete: () -> Void
-    var fillsRow = false
 
     var body: some View {
         if task.isCompleted {
@@ -19,7 +18,7 @@ struct TaskRemovalButton: View {
                     .accessibilityIdentifier("task.deleteChoice")
             } label: {
                 Text("Remove")
-                    .frame(maxWidth: fillsRow ? .infinity : nil, minHeight: 44, alignment: .leading)
+                    .frame(minHeight: 44)
                     .contentShape(Rectangle())
             }
             .accessibilityIdentifier("task.remove.\(task.id)")

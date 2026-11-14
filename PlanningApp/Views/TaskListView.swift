@@ -4,6 +4,7 @@ struct TaskListView: View {
     let tab: PlanningTab
     @Binding var isAddingTask: Bool
     let onScrollOffset: (CGFloat) -> Void
+    let onTaskCreated: () -> Void
 
     @EnvironmentObject private var taskStore: TaskStore
     @EnvironmentObject private var preferences: AppPreferences
@@ -11,6 +12,9 @@ struct TaskListView: View {
     @State private var taskToEdit: TaskItem?
     @State private var taskPendingDeletion: TaskItem?
     @State private var editorDeletion: TaskItem?
+    @State private var editorCopy: TaskItem?
+    @State private var copyDraft: TaskItem?
+    @State private var didCreateTask = false
     @State private var taskShowingDeleteID: UUID?
     @State private var draggedTaskID: UUID?
     @State private var dragPreviewFrame: CGRect?
@@ -68,8 +72,23 @@ struct TaskListView: View {
         }
         .sheet(isPresented: $isAddingTask) { editor(task: nil) }
         .sheet(item: $taskToEdit, onDismiss: {
-            if let task = editorDeletion { editorDeletion = nil; requestDeletion(task) }
+            if let task = editorDeletion {
+                editorDeletion = nil
+                requestDeletion(task)
+            } else if let draft = editorCopy {
+                editorCopy = nil
+                copyDraft = draft
+            }
         }) { editor(task: $0) }
+        .sheet(item: $copyDraft, onDismiss: {
+            if didCreateTask { didCreateTask = false; onTaskCreated() }
+        }) { draft in
+            TaskEditorView(draft: draft, groups: taskStore.groups, onSave: { title, description, groupID, reminder in
+                let saved = taskStore.add(title: title, description: description, groupID: groupID, reminder: reminder)
+                didCreateTask = saved
+                return saved
+            }, onCreateGroup: { taskStore.createGroup(named: $0) })
+        }
         .alert("Delete Task?", isPresented: Binding(
             get: { taskPendingDeletion != nil },
             set: { if !$0 { taskPendingDeletion = nil } }
@@ -97,6 +116,8 @@ struct TaskListView: View {
             else { taskStore.add(title: title, description: description, groupID: groupID, reminder: reminder) }
         }, onCreateGroup: { taskStore.createGroup(named: $0) }, onRequestDelete: task.map { savedTask in { editorDeletion = savedTask } }, onArchive: task.flatMap { savedTask in
             savedTask.isCompleted ? { taskStore.archive(taskID: savedTask.id) } : nil
+        }, onRequestCopy: task.flatMap { savedTask in
+            savedTask.isCompleted ? { editorCopy = savedTask.newTaskDraft(in: taskStore.groups) } : nil
         })
     }
 
@@ -105,7 +126,8 @@ struct TaskListView: View {
                 onComplete: { taskStore.toggleCompletion(for: task.id) },
                 onTaskTap: { if taskShowingDeleteID == task.id { taskShowingDeleteID = nil } else { taskStore.toggleCompletion(for: task.id) } },
                 onLongPress: { taskToEdit = task },
-                onConfigure: { taskToEdit = task }, onArchive: task.isCompleted ? {
+                onConfigure: { taskToEdit = task },
+                onCopy: task.isCompleted ? { copyDraft = task.newTaskDraft(in: taskStore.groups) } : nil, onArchive: task.isCompleted ? {
                     let archived = taskStore.archive(taskID: task.id)
                     if archived { taskShowingDeleteID = nil }
                     return archived
@@ -128,7 +150,7 @@ struct TaskListView: View {
 
     @ViewBuilder private var dragPreview: some View {
         if let draggedTaskID, let task = taskStore.tasks.first(where: { $0.id == draggedTaskID && !$0.isCompleted }), let dragPreviewFrame {
-            TaskRow(task: task, isDeleteVisible: false, onComplete: {}, onTaskTap: {}, onLongPress: {}, onConfigure: {}, onArchive: nil, onDelete: {}, onDragChanged: { _ in }, onDragEnded: { _ in })
+            TaskRow(task: task, isDeleteVisible: false, onComplete: {}, onTaskTap: {}, onLongPress: {}, onConfigure: {}, onCopy: nil, onArchive: nil, onDelete: {}, onDragChanged: { _ in }, onDragEnded: { _ in })
                 .frame(width: dragPreviewFrame.width).scaleEffect(1.035).shadow(color: .black.opacity(0.45), radius: 14, y: 8)
                 .offset(x: dragPreviewFrame.minX, y: dragPreviewFrame.minY + dragTranslation.height).allowsHitTesting(false).accessibilityHidden(true)
         }
@@ -208,6 +230,7 @@ private struct TaskRow: View {
     let onTaskTap: () -> Void
     let onLongPress: () -> Void
     let onConfigure: () -> Void
+    let onCopy: (() -> Void)?
     let onArchive: (() -> Bool)?
     let onDelete: () -> Void
     let onDragChanged: (DragGesture.Value) -> Void
@@ -225,6 +248,7 @@ private struct TaskRow: View {
                 .accessibilityAction { onTaskTap() }
                 .accessibilityAction(named: "Task details", onLongPress)
                 .accessibilityActions {
+                    if let onCopy { Button("Copy", action: onCopy) }
                     if let onArchive { Button("Archive") { _ = onArchive() } }
                     Button("Delete", role: .destructive, action: onDelete)
                 }
@@ -232,6 +256,16 @@ private struct TaskRow: View {
                 TaskRemovalButton(task: task, onArchive: onArchive, onDelete: onDelete)
                     .buttonStyle(.bordered)
                     .tint(task.isCompleted ? .accentColor : .red)
+            } else if task.isCompleted {
+                Menu {
+                    Button("Edit", systemImage: "pencil", action: onConfigure)
+                    if let onCopy { Button("Copy", systemImage: "doc.on.doc", action: onCopy) }
+                    if let onArchive { Button("Archive", systemImage: "archivebox") { _ = onArchive() } }
+                    Button("Delete", systemImage: "trash", role: .destructive, action: onDelete)
+                } label: {
+                    Image(systemName: "ellipsis.circle").frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("Actions for \(task.title)")
             } else {
                 Button(action: onConfigure) {
                     Image(systemName: "gearshape")

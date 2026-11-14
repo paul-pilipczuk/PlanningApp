@@ -9,6 +9,7 @@ struct TaskEditorView: View {
     let onCreateGroup: (String) -> TaskGroup?
     let onRequestDelete: (() -> Void)?
     let onArchive: (() -> Bool)?
+    let onRequestCopy: (() -> Void)?
 
     @State private var title: String
     @State private var description: String
@@ -17,13 +18,14 @@ struct TaskEditorView: View {
     @State private var newGroupName = ""
     @State private var editorGroups: [TaskGroup]
 
-    init(task: TaskItem? = nil, draft: TaskItem? = nil, groups: [TaskGroup], onSave: @escaping (String, String, UUID?, ReminderSettings) -> Bool, onCreateGroup: @escaping (String) -> TaskGroup?, onRequestDelete: (() -> Void)? = nil, onArchive: (() -> Bool)? = nil) {
+    init(task: TaskItem? = nil, draft: TaskItem? = nil, groups: [TaskGroup], onSave: @escaping (String, String, UUID?, ReminderSettings) -> Bool, onCreateGroup: @escaping (String) -> TaskGroup?, onRequestDelete: (() -> Void)? = nil, onArchive: (() -> Bool)? = nil, onRequestCopy: (() -> Void)? = nil) {
         self.task = task
         self.groups = groups
         self.onSave = onSave
         self.onCreateGroup = onCreateGroup
         self.onRequestDelete = onRequestDelete
         self.onArchive = onArchive
+        self.onRequestCopy = onRequestCopy
         let initial = task ?? draft
         _title = State(initialValue: initial?.title ?? "")
         _description = State(initialValue: initial?.description ?? "")
@@ -78,21 +80,20 @@ struct TaskEditorView: View {
                             }
                             .disabled(hasChanges)
                         }
-                        if let task {
-                            TaskRemovalButton(task: task, onArchive: onArchive.map { archive in
-                                {
-                                    let saved = archive()
-                                    if saved { dismiss() }
-                                    return saved
-                                }
-                            }, onDelete: {
-                                onRequestDelete?()
+                        if let onRequestCopy {
+                            Button("Copy", systemImage: "doc.on.doc") {
+                                onRequestCopy()
                                 dismiss()
-                            }, fillsRow: true)
+                            }
                             .disabled(hasChanges)
                         }
+                        Button("Delete", role: .destructive) {
+                            onRequestDelete?()
+                            dismiss()
+                        }
+                        .disabled(hasChanges)
                     } footer: {
-                        if hasChanges { Text("Save or cancel your edits before archiving or removing this task.") }
+                        if hasChanges { Text("Save or cancel your edits before copying, archiving, or removing this task.") }
                     }
                 }
                 if let error = taskStore.errorMessage {
