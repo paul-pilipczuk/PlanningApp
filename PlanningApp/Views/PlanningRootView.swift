@@ -13,25 +13,36 @@ struct PlanningRootView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                PlanningPageHeader(tab: selectedTab, isCompact: navigation.isHeaderCompact) {
-                    isAddingTask = true
-                }
-                .disabled(taskStore.hasLoadFailure)
-                .zIndex(1)
-                if !taskStore.hasLoadFailure, let message = taskStore.errorMessage ?? taskStore.feedbackMessage {
-                    HStack(alignment: .top) {
-                        Text(message).font(.footnote).lineLimit(3).accessibilityLabel(message)
-                        Spacer(minLength: 8)
-                        Button {
-                            taskStore.dismissError()
-                            taskStore.feedbackMessage = nil
-                        } label: { Image(systemName: "xmark.circle.fill").frame(width: 44, height: 44) }
-                        .accessibilityLabel("Dismiss message")
+                VStack(spacing: 0) {
+                    PlanningPageHeader(tab: selectedTab, isCompact: navigation.isHeaderCompact) {
+                        isAddingTask = true
                     }
-                    .padding(.horizontal, 16)
-                    .background(Color(uiColor: .secondarySystemBackground))
-                    .accessibilityIdentifier("task.feedback")
+                    .disabled(taskStore.hasLoadFailure)
+                    if !taskStore.hasLoadFailure, let message = taskStore.errorMessage ?? taskStore.feedbackMessage {
+                        HStack(alignment: .top) {
+                            Text(message).font(.footnote).lineLimit(3).accessibilityLabel(message)
+                            Spacer(minLength: 8)
+                            Button {
+                                taskStore.dismissError()
+                                taskStore.feedbackMessage = nil
+                            } label: { Image(systemName: "xmark.circle.fill").frame(width: 44, height: 44) }
+                            .accessibilityLabel("Dismiss message")
+                        }
+                        .padding(.horizontal, 16)
+                        .background(Color(uiColor: .secondarySystemBackground))
+                        .accessibilityIdentifier("task.feedback")
+                    }
                 }
+                .background(pageBackground)
+                .overlay(alignment: .bottom) {
+                    HeaderScrollEdge(background: pageBackground)
+                        .frame(height: 24)
+                        .offset(y: 24)
+                        .opacity(navigation.isHeaderCompact ? 1 : 0)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+                .zIndex(1)
                 ZStack {
                     tabContent
                         .id(selectedTab)
@@ -39,7 +50,7 @@ struct PlanningRootView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .background(Color(uiColor: .systemBackground))
+            .background(pageBackground)
             .toolbar(.hidden, for: .navigationBar)
             .scrollIndicators(.hidden)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -83,8 +94,12 @@ struct PlanningRootView: View {
         }
     }
 
+    private var pageBackground: Color {
+        Color(uiColor: selectedTab == .settings ? .systemGroupedBackground : .systemBackground)
+    }
+
     private func reportScroll(_ offset: CGFloat, from tab: PlanningTab) {
-        guard tab == selectedTab, !voiceOverEnabled else { return }
+        guard tab == selectedTab else { return }
         navigation.updateScrollOffset(offset)
     }
 
@@ -104,6 +119,7 @@ private struct PlanningPageHeader: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
     @ScaledMetric(relativeTo: .largeTitle) private var expandedHeight = 52
     @ScaledMetric(relativeTo: .headline) private var compactHeight = 44
 
@@ -135,14 +151,12 @@ private struct PlanningPageHeader: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 4)
-        .background(Color(uiColor: .systemBackground))
-        .overlay(alignment: .bottom) {
-            HeaderScrollEdge()
-                .frame(height: 24)
-                .offset(y: 24)
-                .opacity(isCompact ? 1 : 0)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+        .background {
+            if isCompact && !reduceTransparency && contrast != .increased {
+                Rectangle().fill(.regularMaterial)
+            } else {
+                Color(uiColor: tab == .settings ? .systemGroupedBackground : .systemBackground)
+            }
         }
         .animation(.easeInOut(duration: reduceMotion ? 0.12 : 0.22), value: isCompact)
     }
@@ -157,18 +171,19 @@ private struct PlanningPageHeader: View {
 /// A small, static material surface feathers moving content into the header.
 /// It does not blur or snapshot the full list, and never intercepts touches.
 private struct HeaderScrollEdge: View {
+    let background: Color
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         if reduceTransparency || contrast == .increased {
-            Color(uiColor: .systemBackground)
+            background
         } else {
             ZStack {
                 Rectangle()
                     .fill(.ultraThinMaterial)
                     .mask(LinearGradient(colors: [.white, .clear], startPoint: .top, endPoint: .bottom))
-                Color(uiColor: .systemBackground)
+                background
                     .mask(LinearGradient(stops: [
                         .init(color: .white, location: 0),
                         .init(color: .white.opacity(0.85), location: 0.2),
