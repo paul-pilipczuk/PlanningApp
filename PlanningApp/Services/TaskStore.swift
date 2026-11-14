@@ -11,8 +11,17 @@ extension NotificationManager: TaskNotificationScheduling {}
 
 @MainActor
 final class TaskStore: ObservableObject {
-    @Published private(set) var tasks: [TaskItem]
-    @Published private(set) var groups: [TaskGroup]
+    @Published private(set) var tasks: [TaskItem] {
+        didSet {
+            invalidateTaskCollections()
+            taskRevision &+= 1
+        }
+    }
+    @Published private(set) var groups: [TaskGroup] {
+        didSet { cachedSections = nil; cachedGroupNames = nil }
+    }
+    // Published tasks already invalidate their readers; this token adds no publication.
+    private(set) var taskRevision: UInt64 = 0
     @Published private(set) var hasLoadFailure = false
     @Published private(set) var errorMessage: String?
     @Published var feedbackMessage: String?
@@ -23,6 +32,13 @@ final class TaskStore: ObservableObject {
     private let write: (Data, URL) throws -> Void
     private var savedData: PlanningData
     private var reminderOperations: [UUID: Task<Void, Never>] = [:]
+    // Lazy, replaceable projections of current data, never a history of snapshots.
+    private var cachedIncomplete: [TaskItem]?
+    private var cachedCompleted: [TaskItem]?
+    private var cachedArchived: [TaskItem]?
+    private var cachedSections: [TaskSection]?
+    private var cachedActiveGroups: [UUID?: [TaskItem]] = [:]
+    private var cachedGroupNames: [UUID: String]?
     var isSampleData: Bool { storageURL == nil }
 
     convenience init() {
@@ -66,32 +82,80 @@ final class TaskStore: ObservableObject {
         savedData = sampleData
     }
 
-    var incompleteTasks: [TaskItem] { tasks.filter { !$0.isCompleted && !$0.isArchived } }
-    var completedTasks: [TaskItem] { tasks.filter { $0.isCompleted && !$0.isArchived } }
+    var incompleteTasks: [TaskItem] {
+        if let cachedIncomplete { return cachedIncomplete }
+        let result = tasks.filter { !$0.isCompleted && !$0.isArchived }
+        cachedIncomplete = result
+        return result
+    }
+
+    var completedTasks: [TaskItem] {
+        if let cachedCompleted { return cachedCompleted }
+        let result = tasks.filter { $0.isCompleted && !$0.isArchived }
+        cachedCompleted = result
+        return result
+    }
+
     var archivedTasks: [TaskItem] {
-        tasks.enumerated().filter { $0.element.isArchived }.sorted {
+        if let cachedArchived { return cachedArchived }
+        let result = tasks.enumerated().filter { $0.element.isArchived }.sorted {
             let first = $0.element.archivedAt ?? .distantPast
             let second = $1.element.archivedAt ?? .distantPast
             return first == second ? $0.offset < $1.offset : first > second
         }.map(\.element)
+        cachedArchived = result
+        return result
     }
 
     var activeSections: [TaskSection] {
+        if let cachedSections { return cachedSections }
         var grouped: [UUID: [TaskItem]] = [:]
         grouped.reserveCapacity(groups.count)
         let knownGroups = Set(groups.map(\.id))
         var general: [TaskItem] = []
-        for task in tasks where !task.isCompleted && !task.isArchived {
+        for task in incompleteTasks {
             if let groupID = task.groupID, knownGroups.contains(groupID) {
                 grouped[groupID, default: []].append(task)
             } else { general.append(task) }
         }
         let named = groups.map { TaskSection(group: $0, tasks: grouped[$0.id] ?? []) }
-        return named + (general.isEmpty ? [] : [TaskSection(group: nil, tasks: general)])
+        let result = named + (general.isEmpty ? [] : [TaskSection(group: nil, tasks: general)])
+        cachedSections = result
+        return result
+    }
+
+    /// Raw group membership retains the existing group-local reorder contract,
+    /// including tasks whose group no longer exists and display under General.
+    func activeTasks(in groupID: UUID?) -> [TaskItem] {
+        if let cached = cachedActiveGroups[groupID] { return cached }
+        let result = incompleteTasks.filter { $0.groupID == groupID }
+        // Retain only groups represented in current active data, so arbitrary
+        // empty queries cannot grow this cache beyond the task collection.
+        if !result.isEmpty { cachedActiveGroups[groupID] = result }
+        return result
     }
 
     func groupName(for task: TaskItem) -> String {
-        groups.first { $0.id == task.groupID }?.name ?? "General"
+        guard let groupID = task.groupID else { return "General" }
+        if cachedGroupNames == nil {
+            cachedGroupNames = Dictionary(groups.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        }
+        return cachedGroupNames?[groupID] ?? "General"
+    }
+
+    /// Memory pressure may discard all projections without changing saved state
+    /// or asking SwiftUI to redraw; the next read rebuilds only what it needs.
+    func releasePresentationCaches() {
+        invalidateTaskCollections()
+        cachedGroupNames = nil
+    }
+
+    private func invalidateTaskCollections() {
+        cachedIncomplete = nil
+        cachedCompleted = nil
+        cachedArchived = nil
+        cachedSections = nil
+        cachedActiveGroups.removeAll(keepingCapacity: false)
     }
 
     @discardableResult

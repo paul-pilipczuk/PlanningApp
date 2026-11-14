@@ -11,6 +11,7 @@ Planning is a learning project with a practical goal: create a calm, low-frictio
 - **Use familiar iOS patterns.** Sheets, buttons, menus, date pickers, and system icons make the experience easier to learn.
 - **Respect attention.** Reminders are opt-in, local to the device, and can repeat only until the task is finished.
 - **Respect privacy.** There is no account, network connection, analytics service, cloud sync, or remote notification server.
+- **Stay lightweight and smooth.** Treat CPU, memory, and interaction cost as development requirements as features grow. Measure changes and test older supported iPhones, including Low Power Mode comparisons; see [performance guidance](docs/PERFORMANCE.md).
 - **Build accessibly by default.** The app uses SwiftUI system controls, clear action labels for assistive technologies, large row-level actions, and system text styles that respond to the user’s preferred text size.
 
 This does not claim to solve every accessibility need. It is a foundation intended to be tested with real people and improved iteratively.
