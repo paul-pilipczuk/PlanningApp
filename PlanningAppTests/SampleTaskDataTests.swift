@@ -98,4 +98,42 @@ final class SampleTaskDataTests: XCTestCase {
         }
     }
 
+    func testRepeatedTaskCollectionReadsPerformance() {
+        let data = performanceData()
+        let store = TaskStore(sampleData: data)
+        XCTAssertEqual(readListCounts(store), 16_000)
+        measure(metrics: [XCTClockMetric(), XCTCPUMetric(), XCTMemoryMetric()]) {
+            for _ in 0..<50 {
+                XCTAssertEqual(readListCounts(store), 16_000)
+            }
+        }
+    }
+
+    func testColdTaskCollectionsPerformance() {
+        let data = performanceData()
+        measure(metrics: [XCTClockMetric(), XCTCPUMetric(), XCTMemoryMetric()]) {
+            for _ in 0..<5 {
+                let store = TaskStore(sampleData: data)
+                XCTAssertEqual(readListCounts(store), 16_000)
+            }
+        }
+    }
+
+    private func readListCounts(_ store: TaskStore) -> Int {
+        store.incompleteTasks.count + store.completedTasks.count + store.archivedTasks.count
+            + store.activeSections.reduce(0) { $0 + $1.tasks.count }
+    }
+
+    private func performanceData() -> PlanningData {
+        let groups = (0..<100).map { TaskGroup(name: "Group \($0)") }
+        let reminder = ReminderSettings(hour: 9, minute: 0, weekday: 2)
+        let tasks = (0..<10_000).map { index in
+            TaskItem(title: "Task \(index)", description: "Fixed benchmark details",
+                     groupID: index.isMultiple(of: 11) ? nil : groups[index % groups.count].id,
+                     isCompleted: index % 5 < 2, reminder: reminder,
+                     archivedAt: index % 5 == 1 ? Date(timeIntervalSince1970: Double(index % 97)) : nil)
+        }
+        return PlanningData(tasks: tasks, groups: groups)
+    }
+
 }
