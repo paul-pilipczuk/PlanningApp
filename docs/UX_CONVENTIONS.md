@@ -9,6 +9,7 @@ Use these rules when adding or reviewing Planning interfaces.
 - Keep permanent deletion destructive and explicitly confirmed. The confirmation names the task and explains that deletion cannot be undone.
 - Use sentence case for headings and labels. Preserve system text-size, contrast, motion, and transparency preferences.
 - All main pages share a large-to-compact scrolling header, soft content edge, and stable floating navigation. A page that fits on screen does not need artificial scrolling.
+- Responsiveness and low resource use are standing design requirements, including on older supported iPhones. Measure interaction costs and follow [performance guidance](PERFORMANCE.md) when adding features or effects.
 - Cancelling a sheet preserves the underlying page and its scroll position. Persist before reporting success or navigating away.
 
 Review narrow screens, both appearances, and accessibility text sizes. Keep at least 44-point interactive targets; supporting text can wrap naturally between words.

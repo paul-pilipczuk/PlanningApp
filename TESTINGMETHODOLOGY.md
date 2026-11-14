@@ -129,3 +129,7 @@ A copy must preserve editable fields while creating an independent active identi
 ## 0.5.4 menus, completed copies, and shared headers
 
 Use the Debug-only `-sample-data -short-completed-data` fixture to verify the first three Completed removal controls without artificial overflow. Tests open each native menu, dismiss it without changes, archive a selected row, and cancel/confirm deletion from Completed’s ellipsis menu. Saved details use direct Archive/Copy/Delete rows; destructive confirmation still occurs after the editor dismisses. Completed Copy tests verify an independent active task and cancellation with retained scroll position. Compare shared compact headers on every tab in light/dark appearance and repeat on a narrow iOS 17 phone.
+
+## 0.5.5 performance and freshness
+
+[Performance guidance](docs/PERFORMANCE.md) records the identical before/after Release fixture, clock/CPU/memory metrics, cold versus warm results, and phone comparison. Warm every public projection before testing reorder, completion, archive/restore, updates, deletion, group creation, reload, and failed-save rollback. Verify memory-pressure purge preserves saved bytes and current outputs without publishing state; animation revision must ignore messages, groups, no-op saves, and purge. Repeat drag and lifecycle UI regressions on the supported iOS baseline. Simulator timings and small-device layout checks do not establish physical phone performance.

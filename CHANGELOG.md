@@ -2,6 +2,14 @@
 
 All notable user-facing changes to this project are documented here.
 
+## [0.5.5] - 2026-11-13
+
+- Reuse current task collections and group lookups instead of filtering/sorting them during repeated view updates.
+- Limit drag lookups to the active group and replace task-array animation equality with a revision token.
+- Invalidate derived data on mutations and release presentation caches on memory warnings.
+- Establish lightweight, smooth operation on older supported phones as an ongoing development requirement.
+- Add Release before/after benchmarks and cache freshness, rollback, purge, and revision regressions.
+
 ## [0.5.4] - 2026-11-13
 
 - Add a Completed ellipsis menu with Edit, Copy, Archive, and Delete; support copying completed tasks into new active variations.
