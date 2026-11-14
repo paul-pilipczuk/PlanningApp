@@ -10,6 +10,6 @@ Given Settings in either appearance or larger text, controls remain legible and 
 
 Initial validation passed three focused iOS 26.5 UI checks (appearance/relaunch, independent navigation/haptic persistence, and large-text overflow scrolling) and the Release device-SDK build. Visual review caught a pre-existing horizontal label/value issue that split “Permission” at the largest text size; this candidate adds an adaptive stacked layout and a readability regression test. After the fix, the largest-text readability test and the independent navigation/haptic persistence regression both passed on iOS 26.5; the final Release build also passed. The corrected largest-text screenshot was inspected and keeps Permission and its value intact. Local evidence: `/tmp/planning-053-ui.xcresult`, `/tmp/planning-053-a11y.xcresult`, and `/tmp/planning-053-release-final.log`.
 
-0.5.3 stays local on `0.5.3-condense-settings` for owner testing before any push or PR. 0.5.4 remains queued until this version is tested and merged. Physical VoiceOver and hardware haptics remain device checks.
+The owner tested the local 0.5.3 build and approved it on November 13 before the branch was pushed. 0.5.4 follows this release. Physical VoiceOver and hardware haptics remain device checks.
 
 Code review checked both layout commits for preference binding/key changes, permission prompting, notification refresh on return, Dynamic Type, semantic colors, and hit targets. The settings behavior remains intact; the visual review finding above is fixed before local handoff.
