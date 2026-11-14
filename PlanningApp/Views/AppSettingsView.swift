@@ -34,7 +34,7 @@ struct AppSettingsView: View {
                 }
                 settingsSection("Notifications") {
                     VStack(alignment: .leading, spacing: 12) {
-                        LabeledContent("Permission", value: notificationStatus)
+                        settingsValue("Permission", value: notificationStatus)
                             .accessibilityIdentifier("settings.notificationStatus")
                         Divider()
                         Button("Settings", systemImage: "arrow.up.forward.app") {
@@ -49,7 +49,7 @@ struct AppSettingsView: View {
                 }
                 settingsSection("About") {
                     VStack(alignment: .leading, spacing: 12) {
-                        LabeledContent("Version", value: versionDescription)
+                        settingsValue("Version", value: versionDescription)
                         Text("Plans are stored on this device. Archives stay until you delete them.")
                             .font(.footnote).foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -82,6 +82,24 @@ struct AppSettingsView: View {
             content().frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
         }
+    }
+
+    /// Keep words intact when a larger text size cannot fit a label/value pair.
+    private func settingsValue(_ title: String, value: String) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
+                Text(title).fixedSize()
+                Spacer(minLength: 0)
+                Text(value).foregroundStyle(.secondary).fixedSize()
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title)
+                Text(value).foregroundStyle(.secondary)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
     private var versionDescription: String {

@@ -2,6 +2,13 @@
 
 All notable user-facing changes to this project are documented here.
 
+## [0.5.3] - 2026-11-13
+
+- Condense Settings with sentence-case headings, consistent spacing, and fewer detached summaries.
+- Keep storage/retention information inside About and concise control guidance in accessibility hints.
+- Combine app version and build in one row; preserve appearance, navigation, haptic, and notification behavior.
+- Stack Settings labels and values when space is limited, preventing split words at larger text sizes.
+
 ## [0.5.2] - 2026-11-13
 
 - Add Copy between Restore and Delete in archived task actions and details.

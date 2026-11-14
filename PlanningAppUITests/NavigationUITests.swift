@@ -132,6 +132,27 @@ final class NavigationUITests: XCTestCase {
         XCTAssertLessThan(app.staticTexts["page.title"].frame.height, archivedHeight)
     }
 
+    func testSettingsPermissionRemainsReadableAtLargestTextSize() {
+        app.terminate()
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        app.buttons["tab.settings"].tap()
+        let settings = app.scrollViews["settings.scroll"]
+        let permission = app.staticTexts["Permission"]
+        for _ in 0..<4 {
+            if permission.isHittable { break }
+            settings.swipeUp()
+        }
+        XCTAssertTrue(permission.isHittable)
+        let section = app.staticTexts["Notifications"]
+        XCTAssertLessThan(permission.frame.height, section.frame.height * 1.5,
+                          "Permission must remain one complete word at the largest text size")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Readable Settings values at largest text size"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
     func testTaskCompletionMovesBetweenTabs() {
         let title = "Plan the week"
         let task = app.buttons["Complete \(title)"]
