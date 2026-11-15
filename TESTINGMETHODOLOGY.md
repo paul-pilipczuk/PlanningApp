@@ -52,7 +52,8 @@ Unit tests should avoid the real Application Support directory and real notifica
 Use UI tests for critical flows that involve SwiftUI presentation or gesture wiring:
 
 - Creating a task with a description and group.
-- Completing a task through the primary row tap.
+- Completing or reopening a task through its dedicated completion circle.
+- Opening Active/Completed details by tapping task text without changing status.
 - Opening task details through a stationary long press or cog button.
 - Revealing task deletion by swiping left and confirming deletion.
 - Switching between Active, Completed, Archived, and Settings.
@@ -133,3 +134,7 @@ Use the Debug-only `-sample-data -short-completed-data` fixture to verify the fi
 ## 0.5.5 performance and freshness
 
 [Performance guidance](docs/PERFORMANCE.md) records the identical before/after Release fixture, clock/CPU/memory metrics, cold versus warm results, and phone comparison. Warm every public projection before testing reorder, completion, archive/restore, updates, deletion, group creation, reload, and failed-save rollback. Verify memory-pressure purge preserves saved bytes and current outputs without publishing state; animation revision must ignore messages, groups, no-op saves, and purge. Repeat drag and lifecycle UI regressions on the supported iOS baseline. Simulator timings and small-device layout checks do not establish physical phone performance.
+
+## 0.6.0 initial usability batch
+
+[The 0.6 notes](docs/RELEASE_0.6.md#v0-6-0) describe the local candidate. UI scenarios separate completion from details on both task pages, exercise the empty Active canvas without intercepting navigation, dismiss the keyboard without saving, create/cancel groups inside the selector, and retain weekly weekday selection. Unit tests verify daily/weekly notification date components and weekly settings across save/reload without requesting permission or delivering notifications. Retain drag, Copy, archive/delete, scroll, and preference regression coverage. Verify narrow iOS 17 layouts as well as the current SDK. Actual VoiceOver focus, keyboard ergonomics, notification delivery, and phone performance remain physical-device checks.

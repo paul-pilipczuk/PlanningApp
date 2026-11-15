@@ -2,6 +2,15 @@
 
 All notable user-facing changes to this project are documented here.
 
+## [0.6.0] - Local candidate
+
+- Separate task completion circles from task text, which opens details on Active and Completed.
+- Make the empty Active content area a creation target without an illustration or duplicate Add button.
+- Dismiss the title keyboard with Done and provide a keyboard-down control for multiline input.
+- Move New group into the Group selector with a dedicated creation form.
+- Expose weekday and time together for weekly reminders.
+- Keep the larger 0.6.0 PR and subgroup/progress work pending.
+
 ## [0.5.5] - 2026-11-13
 
 - Reuse current task collections and group lookups instead of filtering/sorting them during repeated view updates.

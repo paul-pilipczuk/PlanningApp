@@ -66,14 +66,15 @@ final class TaskUsabilityUITests: XCTestCase {
         app.staticTexts["page.title"].tap()
         XCTAssertTrue(app.navigationBars["New Task"].waitForExistence(timeout: 3))
         app.buttons["Cancel"].tap()
-        app.buttons["tab.completed"].tap()
-        XCTAssertEqual(app.staticTexts["page.title"].label, "Completed")
-        XCTAssertFalse(app.navigationBars["New Task"].exists)
-        app.buttons["tab.active"].tap()
+        // Capture the settled Active header before exercising the tab crossfade.
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "Empty Active canvas without image or extra button"
         screenshot.lifetime = .keepAlways
         add(screenshot)
+        app.buttons["tab.completed"].tap()
+        XCTAssertEqual(app.staticTexts["page.title"].label, "Completed")
+        XCTAssertFalse(app.navigationBars["New Task"].exists)
+        app.buttons["tab.active"].tap()
     }
 
     func testCompletingLastActiveTaskRestoresEmptyCanvasAndNavigation() {

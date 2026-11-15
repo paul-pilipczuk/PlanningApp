@@ -6,7 +6,7 @@ Planning is a learning project with a practical goal: create a calm, low-frictio
 
 ## Product principles
 
-- **Make the next action obvious.** Empty space adds a plan, a task tap completes it, a long press opens its details, and trailing controls expose details and task actions.
+- **Make the next action obvious.** Empty space adds a plan, the completion circle changes task status, and task text opens details. Trailing controls expose details and task actions.
 - **Keep the interface small.** The main screen focuses on the user’s current plans rather than menus, accounts, or configuration.
 - **Use familiar iOS patterns.** Sheets, buttons, menus, date pickers, and system icons make the experience easier to learn.
 - **Respect attention.** Reminders are opt-in, local to the device, and can repeat only until the task is finished.
@@ -22,14 +22,19 @@ This does not claim to solve every accessibility need. It is a foundation intend
 | --- | --- |
 | Tap unused space in the plan list | Opens the new-task sheet |
 | Enter a task title, optional group and description, then tap **Add** | Saves a task on the device |
-| Tap a task | Marks it complete or incomplete |
+| Tap a task’s completion circle | Marks it complete or incomplete |
+| Tap task text | Opens task details without changing completion |
 | Long-press a task, tap an Active cog, or choose Edit from Completed’s ellipsis menu | Opens task details, including description, group, and reminders |
 | Swipe left on an active task | Replaces its cog with a Delete button |
 | Remove a completed task | Offers Archive or confirmed permanent deletion |
 | Copy a completed or archived task | Opens a prefilled new task; Add selects Active and Cancel retains the original page/scroll |
 | Restore an archived task | Returns it to Completed without restarting reminders |
 | Press and hold a task | Lifts it above the list while nearby tasks preview their new positions |
-| Enable notifications | Chooses daily or weekly timing, a time of day, and whether to repeat until completion |
+| Enable notifications | Chooses daily or weekly frequency, weekday for weekly reminders, time, and whether to repeat until completion |
+
+When Active is empty, the whole content area opens a new task, as does the Active heading or its Add button. The empty state has a short instruction without an illustration or a duplicate Add button. Navigation remains available.
+
+In the task editor, Title’s **Done** key dismisses the keyboard without saving. The keyboard-down toolbar control also dismisses it while editing a multiline description. Choose **New group** inside the Group selector to create and select a group; cancelling that form preserves the previous selection. Groups are saved immediately, so cancelling the task does not remove a newly created group.
 
 The floating bottom bar has four destinations: **Active**, **Completed**, **Archived**, and **Settings**. Active shows grouped unfinished plans; Completed shows finished plans with a checkmark, strikethrough text, reduced emphasis, and an ellipsis menu for Edit, Copy, Archive, and Delete. Archived holds completed tasks you choose to keep, with saved details, restoration to Completed, Copy into a prefilled new task, and confirmed permanent deletion.
 
@@ -109,13 +114,13 @@ xcodebuild test -project PlanningApp.xcodeproj -scheme PlanningApp \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO
 ```
 
-Use a simulator name installed on your Mac. [The 0.5 release notes](docs/RELEASE_0.5.md#v0-5-5) record the latest scope, validation evidence, and device checks.
+Use a simulator name installed on your Mac. [The 0.6 release notes](docs/RELEASE_0.6.md#v0-6-0) record the current local candidate, validation evidence, and device checks. The larger 0.6.0 PR is deferred until the remaining scope is ready.
 
 See [performance notes and the phone comparison steps](docs/PERFORMANCE.md) for the separate optimization follow-up.
 
 Additional project documents:
 
-- Release history lives in one document per minor series: [0.4](docs/RELEASE_0.4.md) and [0.5](docs/RELEASE_0.5.md). Each patch has its own version section; add future patch notes to the matching series document.
+- Release history lives in one document per minor series: [0.4](docs/RELEASE_0.4.md), [0.5](docs/RELEASE_0.5.md), and [0.6](docs/RELEASE_0.6.md). Each patch has its own version section; add future patch notes to the matching series document.
 
 - [Interface conventions](docs/UX_CONVENTIONS.md) define action wording, text layout, and shared page behavior.
 
