@@ -406,16 +406,18 @@ final class TaskStore: ObservableObject {
         var candidate = tasks
         var task = candidate.remove(at: source)
         task.progressMarkerID = markerID
+        let insertionIndex: Int
         if let destinationID, let index = candidate.firstIndex(where: { $0.id == destinationID }) {
-            candidate.insert(task, at: index)
+            insertionIndex = index
         } else if let last = candidate.lastIndex(where: {
             !$0.isCompleted && !$0.isArchived && $0.groupID == task.groupID && progressMarker(for: $0).id == markerID
         }) {
-            candidate.insert(task, at: last + 1)
+            insertionIndex = last + 1
         } else {
-            candidate.insert(task, at: min(source, candidate.count))
+            insertionIndex = min(source, candidate.count)
         }
-        guard candidate != tasks else { return false }
+        guard insertionIndex != source || task.progressMarkerID != tasks[source].progressMarkerID else { return false }
+        candidate.insert(task, at: insertionIndex)
         if persist { return commit(candidate, groups: groups) }
         tasks = candidate
         return true
@@ -426,7 +428,7 @@ final class TaskStore: ObservableObject {
         guard commit(tasks, groups: groups) else {
             tasks = savedData.tasks
             groups = savedData.groups
-            progressConfiguration = savedData.progressConfiguration
+            if progressConfiguration != savedData.progressConfiguration { progressConfiguration = savedData.progressConfiguration }
             return false
         }
         return true
@@ -440,7 +442,7 @@ final class TaskStore: ObservableObject {
             let data = try Self.load(from: storageURL)
             tasks = data.tasks
             groups = data.groups
-            progressConfiguration = data.progressConfiguration
+            if progressConfiguration != data.progressConfiguration { progressConfiguration = data.progressConfiguration }
             savedData = data
             hasLoadFailure = false
             errorMessage = nil

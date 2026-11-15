@@ -210,6 +210,7 @@ final class TaskProgressTests: XCTestCase {
         XCTAssertEqual(store.tasks[0].progressMarkerID, doing.id)
         XCTAssertEqual(store.activeSections[0].progressSections[1].tasks.map(\.id), [task.id])
         XCTAssertFalse(store.tasks[0].isCompleted)
+        XCTAssertFalse(store.move(taskID: task.id, toProgressMarker: doing.id))
     }
 
     func testFailedReorderRollsBackWarmProgressLanesAndKeepsConfiguration() throws {

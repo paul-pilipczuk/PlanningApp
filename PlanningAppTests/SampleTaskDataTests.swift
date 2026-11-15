@@ -119,6 +119,34 @@ final class SampleTaskDataTests: XCTestCase {
         }
     }
 
+    func testRepeatedProgressCollectionReadsPerformance() {
+        let data = progressPerformanceData()
+        let store = TaskStore(sampleData: data)
+        XCTAssertEqual(readListCounts(store), 16_000)
+        measure(metrics: [XCTClockMetric(), XCTCPUMetric(), XCTMemoryMetric()]) {
+            for _ in 0..<50 { XCTAssertEqual(readListCounts(store), 16_000) }
+        }
+    }
+
+    func testColdProgressCollectionsPerformance() {
+        let data = progressPerformanceData()
+        measure(metrics: [XCTClockMetric(), XCTCPUMetric(), XCTMemoryMetric()]) {
+            for _ in 0..<5 {
+                let store = TaskStore(sampleData: data)
+                XCTAssertEqual(readListCounts(store), 16_000)
+            }
+        }
+    }
+
+    private func progressPerformanceData() -> PlanningData {
+        var data = performanceData()
+        data.progressConfiguration.isEnabled = true
+        for index in data.tasks.indices {
+            data.tasks[index].progressMarkerID = ProgressConfiguration.defaultMarkers[index % 2].id
+        }
+        return data
+    }
+
     private func readListCounts(_ store: TaskStore) -> Int {
         store.incompleteTasks.count + store.completedTasks.count + store.archivedTasks.count
             + store.activeSections.reduce(0) { $0 + $1.tasks.count }

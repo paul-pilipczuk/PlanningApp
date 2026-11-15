@@ -72,3 +72,20 @@ The unit/UI suite and a device-SDK Release build are checked for this change; ph
 ## Validation record
 
 The 23-test suite (18 unit tests and five UI tests) passed on iPhone 17 Pro / iOS 26.5. The optimized app also built successfully in Release for the iPhone device SDK with signing disabled. The final iPhone 15 Pro / iOS 17.2 run passed all 24 tests (18 unit tests and six UI tests), including an additional drag/reorder regression verifying that geometry caching preserves the current interaction. Result bundles are local under `/tmp/planning-optimized-tests.xcresult` and `/tmp/planning-optimized-ios17-tests.xcresult`.
+
+## 0.6.0 optional progress
+
+Progress preserves lazy rendering and adds cached stable partitions within each task group. Progress rows and section headers share one identity domain so a task can move between labels without destroying its active drag gesture. Group/label candidates, marker lookups, and marker positions are bounded to current data and discarded with the presentation caches. A section drop compares its destination and marker directly rather than comparing the full task array during drag updates. Configuration saves and final order saves retain the atomic snapshot contract.
+
+The fixed 10,000-task Release fixture and the original two benchmark methods are unchanged. An isolated checkout of `327e63c` supplied the prior build; both versions used the same iPhone 17 Pro/iOS 26.5 destination, Xcode 26.6, sequential execution, and `ENABLE_TESTABILITY=YES`. Two added methods apply the same workload with progress enabled and alternating assignments across the two labels. Each result averages five iterations.
+
+| Store collection work | Prior build | Progress off | Progress on |
+| --- | --- | --- | --- |
+| 50 warmed collection/count reads | 0.000268 s | 0.000320 s | 0.000332 s |
+| Five fresh stores with complete collection reads | 0.127950 s | 0.132625 s | 0.157947 s |
+
+The enabled feature has extra cold work for label partitions and stable presentation rows. Default-off cold work was about 4% higher in this comparison; the warm difference was about 0.05 milliseconds for the entire 50-read loop. These are store measurements, not row-layout, frame-rate, or energy results. Early runs under different simulator load varied more, so the original isolated checkout was rerun under the current conditions; those earlier bundles are retained rather than treated as an optimization result.
+
+Progress adds a task reference field and retained current-data projections, so it does not claim a memory reduction. XCTest memory metrics are recorded in the bundles; different case order and allocator reuse prevent attributing process peak differences solely to caches. Purge/freshness tests establish that cached label lookups, positions, sections, and candidates rebuild correctly without publishing or altering saved data.
+
+Evidence: `/tmp/planning-progress-baseline-controlled.xcresult` and `/tmp/planning-progress-final-unit.xcresult`. Earlier measurements: `/tmp/planning-060-progress-baseline.xcresult`, `/tmp/planning-060-progress-measured.xcresult`, and `/tmp/planning-progress-final-release-unit.xcresult`. Repeat the physical-phone comparison with progress off/on, the same task data, and Low Power Mode off/on before drawing conclusions about interaction smoothness.
