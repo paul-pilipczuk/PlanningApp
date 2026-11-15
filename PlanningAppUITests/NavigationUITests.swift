@@ -161,7 +161,8 @@ final class NavigationUITests: XCTestCase {
         let rows = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Mark ' AND label ENDSWITH ' active'"))
         XCTAssertEqual(rows.count, 3)
         for index in 0..<3 {
-            rows.element(boundBy: index).swipeLeft()
+            let title = String(rows.element(boundBy: index).label.dropFirst("Mark ".count).dropLast(" active".count))
+            app.buttons["Task details: \(title)"].swipeLeft()
             app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'task.remove.'")).firstMatch.tap()
             XCTAssertTrue(app.buttons["task.archiveChoice"].waitForExistence(timeout: 3))
             XCTAssertTrue(app.buttons["task.deleteChoice"].exists)
@@ -233,8 +234,8 @@ final class NavigationUITests: XCTestCase {
         let second = app.buttons["Complete Review the project notes"]
         XCTAssertTrue(first.waitForExistence(timeout: 5))
         XCTAssertLessThan(first.frame.midY, second.frame.midY)
-        let start = first.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-        let end = second.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9))
+        let start = app.buttons["Task details: Plan the week"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let end = app.buttons["Task details: Review the project notes"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9))
         start.press(forDuration: 0.15, thenDragTo: end)
         XCTAssertGreaterThan(first.frame.midY, second.frame.midY)
         XCTAssertTrue(app.buttons["tab.active"].exists)

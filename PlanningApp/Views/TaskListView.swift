@@ -26,42 +26,14 @@ struct TaskListView: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 10) {
-                    if visibleTasks.isEmpty {
-                        emptyState
-                    } else if tab == .active {
-                        ForEach(taskStore.activeSections.filter { !$0.tasks.isEmpty }) { section in
-                            Text(section.title)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .padding(.top, 8)
-                                .accessibilityAddTraits(.isHeader)
-                            ForEach(section.tasks) { task in taskRow(task) }
-                        }
-                    } else {
-                        ForEach(taskStore.completedTasks) { task in taskRow(task) }
-                    }
-                    if tab == .active {
-                        Color.clear.frame(minHeight: visibleTasks.isEmpty ? 260 : 140)
-                            .contentShape(Rectangle())
-                            .onTapGesture { isAddingTask = true }
-                            .accessibilityHidden(true)
-                    }
-                }
-                .padding(16)
-                .padding(.bottom, 92)
-                .background(TaskScrollContentReader())
-                .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: taskStore.taskRevision)
+            if tab == .active && visibleTasks.isEmpty {
+                emptyActiveCanvas
+            } else {
+                taskScrollView
             }
-            .modifier(TaskScrollObserver { offset in
-                guard draggedTaskID == nil else { return }
-                onScrollOffset(offset)
-            })
-            .accessibilityIdentifier("taskList.\(tab.rawValue)")
-            .id(tab)
             dragPreview
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .systemBackground))
         .coordinateSpace(name: "taskList")
         .onPreferenceChange(TaskFramePreferenceKey.self) { taskFrames.frames = $0 }
@@ -102,6 +74,63 @@ struct TaskListView: View {
 
     }
 
+    private var taskScrollView: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 10) {
+                if visibleTasks.isEmpty {
+                    emptyState
+                } else if tab == .active {
+                    ForEach(taskStore.activeSections.filter { !$0.tasks.isEmpty }) { section in
+                        Text(section.title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 8)
+                            .accessibilityAddTraits(.isHeader)
+                        ForEach(section.tasks) { task in taskRow(task) }
+                    }
+                } else {
+                    ForEach(taskStore.completedTasks) { task in taskRow(task) }
+                }
+                if tab == .active {
+                    Color.clear.frame(height: 140)
+                        .contentShape(Rectangle())
+                        .onTapGesture { isAddingTask = true }
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding(16)
+            .padding(.bottom, 92)
+            .background(TaskScrollContentReader())
+            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: taskStore.taskRevision)
+        }
+        .modifier(TaskScrollObserver { offset in
+            guard draggedTaskID == nil else { return }
+            onScrollOffset(offset)
+        })
+        .accessibilityIdentifier("taskList.\(tab.rawValue)")
+        .id(tab)
+    }
+
+    private var emptyActiveCanvas: some View {
+        Button { isAddingTask = true } label: {
+            VStack(spacing: 8) {
+                Text("No plans yet").font(.title2.bold()).foregroundStyle(.primary)
+                Text("Tap anywhere to add a plan.")
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.bottom, 92)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Add task")
+        .accessibilityValue("No plans yet")
+        .accessibilityHint("Opens a new task.")
+        .accessibilityIdentifier("task.emptyActive")
+    }
+
     private var visibleTasks: [TaskItem] {
         tab == .completed ? taskStore.completedTasks : taskStore.incompleteTasks
     }
@@ -124,8 +153,8 @@ struct TaskListView: View {
 
     private func taskRow(_ task: TaskItem) -> some View {
         TaskRow(task: task, isDeleteVisible: taskShowingDeleteID == task.id,
-                onComplete: { taskStore.toggleCompletion(for: task.id) },
-                onTaskTap: { if taskShowingDeleteID == task.id { taskShowingDeleteID = nil } else { taskStore.toggleCompletion(for: task.id) } },
+                onComplete: { taskShowingDeleteID = nil; taskStore.toggleCompletion(for: task.id) },
+                onTaskTap: { taskShowingDeleteID = nil; taskToEdit = task },
                 onLongPress: { taskToEdit = task },
                 onConfigure: { taskToEdit = task },
                 onCopy: task.isCompleted ? { copyDraft = task.newTaskDraft(in: taskStore.groups) } : nil, onArchive: task.isCompleted ? {
@@ -209,18 +238,9 @@ struct TaskListView: View {
     }
 
     private var emptyState: some View {
-        ContentUnavailableView {
-            Label(tab == .completed ? "Nothing completed yet" : "No plans yet",
-                  systemImage: tab == .completed ? "checkmark.circle" : "checklist")
-        } description: {
-            Text(tab == .completed ? "Completed plans will appear here." : "Tap the plus or the empty space to add a plan.")
-        } actions: {
-            if tab == .active {
-                Button("Add a plan") { isAddingTask = true }
-                    .buttonStyle(.bordered)
-            }
-        }
-        .frame(maxWidth: .infinity, minHeight: 230)
+        ContentUnavailableView("Nothing completed yet", systemImage: "checkmark.circle",
+                               description: Text("Completed plans will appear here."))
+            .frame(maxWidth: .infinity, minHeight: 230)
     }
 
 }
@@ -250,9 +270,19 @@ private struct TaskRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
+            Button(action: onComplete) {
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.title2)
+                    .foregroundStyle(task.isCompleted ? Color.green : Color.secondary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(task.isCompleted ? "Mark \(task.title) active" : "Complete \(task.title)")
+            .accessibilityValue(task.isCompleted ? "Completed" : "Active")
             primaryInteraction
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(task.isCompleted ? "Mark \(task.title) active" : "Complete \(task.title)")
+                .accessibilityLabel("Task details: \(task.title)")
                 .accessibilityValue(task.description)
                 .accessibilityAddTraits(.isButton)
                 .accessibilityAction { onTaskTap() }
@@ -293,7 +323,7 @@ private struct TaskRow: View {
 
     @ViewBuilder
     private var primaryInteraction: some View {
-        if task.isCompleted {
+        if task.isCompleted || isDeleteVisible {
             taskContent
                 .onTapGesture(perform: onTaskTap)
                 .onLongPressGesture(perform: onLongPress)
@@ -324,10 +354,14 @@ private struct TaskRow: View {
     }
 
     private var taskContent: some View {
-        HStack(spacing: 12) {
-            Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle").font(.title2).foregroundStyle(task.isCompleted ? Color.green : Color.secondary)
-            VStack(alignment: .leading, spacing: 3) { Text(task.title).strikethrough(task.isCompleted).foregroundStyle(task.isCompleted ? Color.secondary : Color.primary); if !task.description.isEmpty { Text(task.description).lineLimit(1).font(.subheadline).foregroundStyle(.secondary) } }.frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 3) {
+            Text(task.title).strikethrough(task.isCompleted)
+                .foregroundStyle(task.isCompleted ? Color.secondary : Color.primary)
+            if !task.description.isEmpty {
+                Text(task.description).lineLimit(1).font(.subheadline).foregroundStyle(.secondary)
+            }
         }
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
         .contentShape(Rectangle())
     }
 

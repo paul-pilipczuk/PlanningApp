@@ -18,6 +18,11 @@ struct PlanningRootView: View {
                         isAddingTask = true
                     }
                     .disabled(taskStore.hasLoadFailure)
+                    .onTapGesture {
+                        if selectedTab == .active && taskStore.incompleteTasks.isEmpty && !taskStore.hasLoadFailure {
+                            isAddingTask = true
+                        }
+                    }
                     if !taskStore.hasLoadFailure, let message = taskStore.errorMessage ?? taskStore.feedbackMessage {
                         HStack(alignment: .top) {
                             Text(message).font(.footnote).lineLimit(3).accessibilityLabel(message)
@@ -57,6 +62,9 @@ struct PlanningRootView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
             taskStore.releasePresentationCaches()
+        }
+        .onChange(of: taskStore.incompleteTasks.isEmpty) { _, isEmpty in
+            if selectedTab == .active && isEmpty { navigation.reset() }
         }
         .onChange(of: preferences.keepNavigationExpanded) { _, _ in navigation.expand() }
         .onChange(of: taskStore.feedbackMessage) { _, message in
@@ -103,6 +111,7 @@ struct PlanningRootView: View {
 
     private func reportScroll(_ offset: CGFloat, from tab: PlanningTab) {
         guard tab == selectedTab else { return }
+        guard tab != .active || !taskStore.incompleteTasks.isEmpty else { return }
         navigation.updateScrollOffset(offset)
     }
 
