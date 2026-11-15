@@ -157,11 +157,8 @@ struct TaskProgressIndicator: View {
     var body: some View {
         let labels = taskStore.progressConfiguration.markers
         let marker = taskStore.progressMarker(for: task)
-        VStack(alignment: .leading, spacing: 6) {
-            Text(task.isCompleted ? "Completed" : marker.label).font(.caption).foregroundStyle(.secondary)
-            ProgressView(value: taskStore.progressFraction(for: task))
-                .tint(.accentColor)
-        }
+        ProgressView(value: taskStore.progressFraction(for: task))
+            .tint(.accentColor)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Progress for \(task.title)")
         .accessibilityValue(task.isCompleted ? "Completed" : marker.label)
@@ -188,8 +185,6 @@ struct TaskProgressSlider: View {
 
     var body: some View {
         let labels = taskStore.progressConfiguration.markers
-        Text(labels[selectedIndex].label)
-            .accessibilityIdentifier("task.progressLabel")
         if labels.count > 1 {
             Slider(value: Binding(get: { Double(selectedIndex) }, set: { markerID = labels[Int($0.rounded())].id }),
                    in: 0...Double(labels.count - 1), step: 1)
@@ -197,5 +192,9 @@ struct TaskProgressSlider: View {
                 .accessibilityValue(labels[selectedIndex].label)
                 .accessibilityIdentifier("task.progressSlider")
         }
+        // A growing label must not move the slider while a finger is on its thumb.
+        Text(labels[selectedIndex].label)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("task.progressLabel")
     }
 }
