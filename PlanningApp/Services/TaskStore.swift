@@ -156,11 +156,9 @@ final class TaskStore: ObservableObject {
         for section in activeSections {
             rows.append(.group(section.group, isEmpty: section.tasks.isEmpty))
             if progressConfiguration.isEnabled {
-                for row in section.progressRows {
-                    switch row {
-                    case .header(let marker, let isEmpty): rows.append(.progress(groupID: section.id, marker: marker, isEmpty: isEmpty))
-                    case .task(let task): rows.append(.task(task))
-                    }
+                for progress in section.progressSections {
+                    rows.append(.progress(groupID: section.id, marker: progress.marker, isEmpty: progress.tasks.isEmpty))
+                    for task in progress.tasks { rows.append(.task(task)) }
                 }
             } else {
                 for task in section.tasks { rows.append(.task(task)) }
@@ -210,13 +208,7 @@ final class TaskStore: ObservableObject {
     private func makeSection(group: TaskGroup?, tasks: [TaskItem]) -> TaskSection {
         guard progressConfiguration.isEnabled, !tasks.isEmpty else { return TaskSection(group: group, tasks: tasks) }
         let sections = progressSections(for: tasks)
-        var rows: [TaskProgressRow] = []
-        rows.reserveCapacity(tasks.count + sections.count)
-        for section in sections {
-            rows.append(.header(section.marker, isEmpty: section.tasks.isEmpty))
-            for task in section.tasks { rows.append(.task(task)) }
-        }
-        return TaskSection(group: group, tasks: sections.flatMap(\.tasks), progressSections: sections, progressRows: rows)
+        return TaskSection(group: group, tasks: sections.flatMap(\.tasks), progressSections: sections)
     }
 
     /// Stable buckets preserve manual ordering without sorting tasks on each render.

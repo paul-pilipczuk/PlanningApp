@@ -100,24 +100,9 @@ struct TaskSection: Identifiable {
     let group: TaskGroup?
     let tasks: [TaskItem]
     var progressSections: [TaskProgressSection] = []
-    var progressRows: [TaskProgressRow] = []
 
     var id: UUID? { group?.id }
     var title: String { group?.name ?? "General" }
-}
-
-/// One stable identity domain keeps a dragged row alive when its label changes.
-enum TaskProgressRow: Identifiable {
-    case header(ProgressMarker, isEmpty: Bool)
-    case task(TaskItem)
-
-    enum ID: Hashable { case header(UUID), task(UUID) }
-    var id: ID {
-        switch self {
-        case .header(let marker, _): .header(marker.id)
-        case .task(let task): .task(task.id)
-        }
-    }
 }
 
 /// Stable task identities span every task group as well as its progress sections.

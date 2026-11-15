@@ -61,6 +61,9 @@ final class TaskProgressTests: XCTestCase {
         let store = enabledStore([first, second, third, fourth, generalDoing, generalTodo], groups: [group])
         XCTAssertEqual(store.activeSections[0].tasks.map(\.id), [second.id, fourth.id, first.id, third.id])
         XCTAssertEqual(store.activeSections[1].tasks.map(\.id), [generalTodo.id, generalDoing.id])
+        XCTAssertEqual(store.activeRows.compactMap { row -> UUID? in
+            if case .task(let task) = row { return task.id }; return nil
+        }, [second.id, fourth.id, first.id, third.id, generalTodo.id, generalDoing.id])
         XCTAssertEqual(store.tasks.map(\.id), [first.id, second.id, third.id, fourth.id, generalDoing.id, generalTodo.id])
     }
 
