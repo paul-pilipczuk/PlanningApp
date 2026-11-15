@@ -16,3 +16,7 @@ Keep Planning lightweight and responsive as features and saved data grow, includ
 Use focused commits within a release branch. For the authorized release workflow, branch from freshly pulled main, review the full diff and behavioral regressions, then squash-merge the versioned PR and delete its source branch. Honor any owner request to test locally before pushing.
 
 Keep unrelated local Xcode user-state changes out of release commits.
+
+## Release documentation
+
+Keep one release-notes file per minor series, such as `docs/RELEASE_0.5.md`, with a section and stable version anchor for each patch. Add patch notes to that document instead of creating another patch-level file. Preserve historical validation evidence and update links when reorganizing notes. Documentation-only maintenance does not bump the app version or build.

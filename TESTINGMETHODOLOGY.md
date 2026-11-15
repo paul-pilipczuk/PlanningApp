@@ -102,21 +102,21 @@ The first test suite should establish seams around `TaskStore` persistence and `
 
 `PlanningAppTests` covers collapse thresholds, jitter, overscroll, explicit expansion, tab resets, invalid measurements, fixture integrity, memory-only demo edits, and persisted completion with temporary storage. `PlanningAppUITests` covers all destinations, scroll collapse/expansion, appearance persistence, completion/reopening, task details, and task creation presentation. UI tests launch with `-sample-data` and use the list margin to preserve the current row-drag interaction.
 
-See [the milestone notes](docs/RELEASE_0.4.0.md) for Given/When/Then scenarios, exact validation evidence, and remaining device checks. Tests do not establish comprehensive foundation readiness or verify real notification delivery.
+See [the milestone notes](docs/RELEASE_0.4.md#v0-4-0) for Given/When/Then scenarios, exact validation evidence, and remaining device checks. Tests do not establish comprehensive foundation readiness or verify real notification delivery.
 
 The separate performance follow-up adds a scroll-publication regression, grouped ordering/completion coverage, and a 10,000-task construction benchmark. Timings are comparative evidence, not an absolute CI threshold or a substitute for phone profiling. [Performance notes](docs/PERFORMANCE.md) describe the fixture, configuration, and device comparison.
 
 ## 0.4.1 appearance regressions
 
-[The 0.4.1 notes](docs/RELEASE_0.4.1.md) record restored compact headings, the circular inline add control, stable floating-bar bounds during tab changes, and collapse on scrollable Settings content. Tests exercise Completed with the full demo fixture and Settings at larger accessibility text sizes; short/static pages intentionally keep navigation expanded. Heading state is tested for hysteresis and distinct publication so the prior scroll-performance work remains in place.
+[The 0.4.1 notes](docs/RELEASE_0.4.md#v0-4-1) record restored compact headings, the circular inline add control, stable floating-bar bounds during tab changes, and collapse on scrollable Settings content. Tests exercise Completed with the full demo fixture and Settings at larger accessibility text sizes; short/static pages intentionally keep navigation expanded. Heading state is tested for hysteresis and distinct publication so the prior scroll-performance work remains in place.
 
 ## 0.4.2 visual polish
 
-[The 0.4.2 notes](docs/RELEASE_0.4.2.md) record consistent compact heading alignment, the shared Archived scroll path, hidden page scroll indicators, and the material edge. The UI suite captures Active/Completed/Settings compact headers and checks centering, restoration, navigation bounds, and Archived's fitting-content behavior. Visual inspection in light and dark appearance checks the soft edge and hidden indicators; the effect has no touch target or additional scroll-state publication.
+[The 0.4.2 notes](docs/RELEASE_0.4.md#v0-4-2) record consistent compact heading alignment, the shared Archived scroll path, hidden page scroll indicators, and the material edge. The UI suite captures Active/Completed/Settings compact headers and checks centering, restoration, navigation bounds, and Archived's fitting-content behavior. Visual inspection in light and dark appearance checks the soft edge and hidden indicators; the effect has no touch target or additional scroll-state publication.
 
 ## 0.5.0 archive and settings
 
-[The 0.5.0 release notes](docs/RELEASE_0.5.0.md) record initial-build evidence and the device checklist. Unit coverage includes archive/restore persistence and field preservation, legacy migration, newest-first archives, stale archived-task operations, failed-write rollback, unreadable/future/inconsistent file protection, reminder cancellation, and preference persistence. Writes use temporary files and injected failure/notification seams.
+[The 0.5.0 release notes](docs/RELEASE_0.5.md#v0-5-0) record initial-build evidence and the device checklist. Unit coverage includes archive/restore persistence and field preservation, legacy migration, newest-first archives, stale archived-task operations, failed-write rollback, unreadable/future/inconsistent file protection, reminder cancellation, and preference persistence. Writes use temporary files and injected failure/notification seams.
 
 UI coverage exercises the completed-task removal chooser, cancellation, archiving, restoration, final deletion confirmation, deletion from archived details, navigation preference persistence, and existing task/navigation/scroll gestures. Capture permanent-delete alerts after their presentation transition for light/dark visual review; an intermediate frame can make the system material appear unusually transparent. Native system alert styling remains in use.
 

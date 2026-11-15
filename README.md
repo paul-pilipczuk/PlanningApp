@@ -109,11 +109,13 @@ xcodebuild test -project PlanningApp.xcodeproj -scheme PlanningApp \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO
 ```
 
-Use a simulator name installed on your Mac. [The 0.5.0 initial release notes and test checklist](docs/RELEASE_0.5.0.md) record scope, scenarios, and validation limitations.
+Use a simulator name installed on your Mac. [The 0.5 release notes](docs/RELEASE_0.5.md#v0-5-5) record the latest scope, validation evidence, and device checks.
 
 See [performance notes and the phone comparison steps](docs/PERFORMANCE.md) for the separate optimization follow-up.
 
 Additional project documents:
+
+- Release history lives in one document per minor series: [0.4](docs/RELEASE_0.4.md) and [0.5](docs/RELEASE_0.5.md). Each patch has its own version section; add future patch notes to the matching series document.
 
 - [Interface conventions](docs/UX_CONVENTIONS.md) define action wording, text layout, and shared page behavior.
 
