@@ -74,8 +74,8 @@ struct ArchiveView: View {
                 onTaskCreated()
             }
         }) { draft in
-            TaskEditorView(draft: draft, groups: taskStore.groups, onSave: { title, description, groupID, reminder in
-                let saved = taskStore.add(title: title, description: description, groupID: groupID, reminder: reminder)
+            TaskEditorView(draft: draft, groups: taskStore.groups, onSave: { title, description, groupID, reminder, progressID in
+                let saved = taskStore.add(title: title, description: description, groupID: groupID, reminder: reminder, progressMarkerID: progressID)
                 didCreateTask = saved
                 return saved
             }, onCreateGroup: { taskStore.createGroup(named: $0) })

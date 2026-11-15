@@ -5,7 +5,7 @@ struct TaskEditorView: View {
     @EnvironmentObject private var taskStore: TaskStore
     let task: TaskItem?
     let groups: [TaskGroup]
-    let onSave: (String, String, UUID?, ReminderSettings) -> Bool
+    let onSave: (String, String, UUID?, ReminderSettings, UUID?) -> Bool
     let onCreateGroup: (String) -> TaskGroup?
     let onRequestDelete: (() -> Void)?
     let onArchive: (() -> Bool)?
@@ -14,6 +14,7 @@ struct TaskEditorView: View {
     @State private var title: String
     @State private var description: String
     @State private var groupID: UUID?
+    @State private var progressMarkerID: UUID?
     @State private var reminder: ReminderSettings
     @State private var editorGroups: [TaskGroup]
     @State private var isCreatingGroup = false
@@ -22,7 +23,7 @@ struct TaskEditorView: View {
     private enum Field: Hashable { case title, description }
     private enum GroupChoice: Hashable { case general, existing(UUID), create }
 
-    init(task: TaskItem? = nil, draft: TaskItem? = nil, groups: [TaskGroup], onSave: @escaping (String, String, UUID?, ReminderSettings) -> Bool, onCreateGroup: @escaping (String) -> TaskGroup?, onRequestDelete: (() -> Void)? = nil, onArchive: (() -> Bool)? = nil, onRequestCopy: (() -> Void)? = nil) {
+    init(task: TaskItem? = nil, draft: TaskItem? = nil, groups: [TaskGroup], onSave: @escaping (String, String, UUID?, ReminderSettings, UUID?) -> Bool, onCreateGroup: @escaping (String) -> TaskGroup?, onRequestDelete: (() -> Void)? = nil, onArchive: (() -> Bool)? = nil, onRequestCopy: (() -> Void)? = nil) {
         self.task = task
         self.groups = groups
         self.onSave = onSave
@@ -34,6 +35,7 @@ struct TaskEditorView: View {
         _title = State(initialValue: initial?.title ?? "")
         _description = State(initialValue: initial?.description ?? "")
         _groupID = State(initialValue: initial?.groupID)
+        _progressMarkerID = State(initialValue: initial?.progressMarkerID)
         _reminder = State(initialValue: initial?.reminder ?? ReminderSettings())
         _editorGroups = State(initialValue: groups)
     }
@@ -63,6 +65,12 @@ struct TaskEditorView: View {
                     TextEditor(text: $description).frame(minHeight: 90)
                         .focused($focusedField, equals: .description)
                         .accessibilityIdentifier("task.description")
+                }
+                if taskStore.progressConfiguration.isEnabled {
+                    Section {
+                        TaskProgressSlider(markerID: $progressMarkerID)
+                    } header: { Text("Progress") }
+                      footer: { Text("Progress labels don’t complete a task. Use its completion circle when it’s done.") }
                 }
                 Section("Notifications") {
                     ReminderScheduleFields(reminder: $reminder)
@@ -107,7 +115,7 @@ struct TaskEditorView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(task == nil ? "Add" : "Save") {
-                        if onSave(title, description, groupID, reminder) { dismiss() }
+                        if onSave(title, description, groupID, reminder, progressMarkerID) { dismiss() }
                     }
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .accessibilityIdentifier("task.save")
@@ -142,7 +150,9 @@ struct TaskEditorView: View {
 
     private var hasChanges: Bool {
         guard let task else { return false }
-        return title != task.title || description != task.description || groupID != task.groupID || reminder != task.reminder
+        let progressChanged = taskStore.progressConfiguration.isEnabled &&
+            (progressMarkerID ?? taskStore.progressConfiguration.markers[0].id) != taskStore.progressMarker(for: task).id
+        return title != task.title || description != task.description || groupID != task.groupID || reminder != task.reminder || progressChanged
     }
 
 }

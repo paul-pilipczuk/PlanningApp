@@ -18,6 +18,7 @@ struct TaskListView: View {
     @State private var taskShowingDeleteID: UUID?
     @State private var draggedTaskID: UUID?
     @State private var dragGroupID: UUID?
+    @State private var dragDisplayGroupID: UUID?
     @State private var dragPreviewFrame: CGRect?
     @State private var dragTranslation: CGSize = .zero
     @State private var hasPendingReorder = false
@@ -37,6 +38,7 @@ struct TaskListView: View {
         .background(Color(uiColor: .systemBackground))
         .coordinateSpace(name: "taskList")
         .onPreferenceChange(TaskFramePreferenceKey.self) { taskFrames.frames = $0 }
+        .onPreferenceChange(ProgressFramePreferenceKey.self) { taskFrames.replaceProgressFrames($0) }
         .sensoryFeedback(.selection, trigger: reorderFeedback) { _, _ in preferences.hapticFeedback }
         .onChange(of: tab) { _, _ in
             endDragging()
@@ -56,8 +58,8 @@ struct TaskListView: View {
         .sheet(item: $copyDraft, onDismiss: {
             if didCreateTask { didCreateTask = false; onTaskCreated() }
         }) { draft in
-            TaskEditorView(draft: draft, groups: taskStore.groups, onSave: { title, description, groupID, reminder in
-                let saved = taskStore.add(title: title, description: description, groupID: groupID, reminder: reminder)
+            TaskEditorView(draft: draft, groups: taskStore.groups, onSave: { title, description, groupID, reminder, progressID in
+                let saved = taskStore.add(title: title, description: description, groupID: groupID, reminder: reminder, progressMarkerID: progressID)
                 didCreateTask = saved
                 return saved
             }, onCreateGroup: { taskStore.createGroup(named: $0) })
@@ -86,7 +88,16 @@ struct TaskListView: View {
                             .foregroundStyle(.secondary)
                             .padding(.top, 8)
                             .accessibilityAddTraits(.isHeader)
-                        ForEach(section.tasks) { task in taskRow(task) }
+                        if taskStore.progressConfiguration.isEnabled {
+                            ForEach(section.progressRows) { row in
+                                switch row {
+                                case .header(let marker, let isEmpty): progressHeader(marker, groupID: section.id, isEmpty: isEmpty)
+                                case .task(let task): taskRow(task)
+                                }
+                            }
+                        } else {
+                            ForEach(section.tasks) { task in taskRow(task) }
+                        }
                     }
                 } else {
                     ForEach(taskStore.completedTasks) { task in taskRow(task) }
@@ -109,6 +120,27 @@ struct TaskListView: View {
         })
         .accessibilityIdentifier("taskList.\(tab.rawValue)")
         .id(tab)
+    }
+
+    private func progressHeader(_ marker: ProgressMarker, groupID: UUID?, isEmpty: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(marker.label).font(.caption.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("progress.section.\(groupID?.uuidString ?? "general").\(marker.id)")
+            if isEmpty { Text("Drag a task here").font(.caption) }
+        }
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, minHeight: isEmpty ? 72 : 32, alignment: .leading)
+        .padding(.horizontal, isEmpty ? 12 : 0)
+        .background {
+            if isEmpty { RoundedRectangle(cornerRadius: 14).fill(Color.primary.opacity(0.04)) }
+        }
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(key: ProgressFramePreferenceKey.self,
+                    value: [ProgressDropTarget(groupID: groupID, markerID: marker.id): proxy.frame(in: .named("taskList"))])
+            }
+        }
     }
 
     private var emptyActiveCanvas: some View {
@@ -141,9 +173,9 @@ struct TaskListView: View {
     }
 
     private func editor(task: TaskItem?) -> TaskEditorView {
-        TaskEditorView(task: task, groups: taskStore.groups, onSave: { title, description, groupID, reminder in
-            if let task { taskStore.update(taskID: task.id, title: title, description: description, groupID: groupID, reminder: reminder) }
-            else { taskStore.add(title: title, description: description, groupID: groupID, reminder: reminder) }
+        TaskEditorView(task: task, groups: taskStore.groups, onSave: { title, description, groupID, reminder, progressID in
+            if let task { taskStore.update(taskID: task.id, title: title, description: description, groupID: groupID, reminder: reminder, progressMarkerID: progressID) }
+            else { taskStore.add(title: title, description: description, groupID: groupID, reminder: reminder, progressMarkerID: progressID) }
         }, onCreateGroup: { taskStore.createGroup(named: $0) }, onRequestDelete: task.map { savedTask in { editorDeletion = savedTask } }, onArchive: task.flatMap { savedTask in
             savedTask.isCompleted ? { taskStore.archive(taskID: savedTask.id) } : nil
         }, onRequestCopy: task.flatMap { savedTask in
@@ -197,6 +229,7 @@ struct TaskListView: View {
     private func beginDragging(_ task: TaskItem) {
         guard draggedTaskID == nil, let frame = taskFrames.frames[task.id] else { return }
         dragGroupID = task.groupID
+        dragDisplayGroupID = taskStore.groups.contains(where: { $0.id == task.groupID }) ? task.groupID : nil
         withAnimation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.8)) {
             draggedTaskID = task.id
             dragPreviewFrame = frame
@@ -206,6 +239,19 @@ struct TaskListView: View {
 
     private func updateTaskOrder(for location: CGPoint) {
         guard let draggedTaskID else { return }
+        if taskStore.progressConfiguration.isEnabled,
+           let target = taskFrames.progressZones[dragDisplayGroupID]?.first(where: { $0.frame.contains(location) }),
+           let current = taskStore.activeTasks(in: dragGroupID).first(where: { $0.id == draggedTaskID }),
+           taskStore.progressMarker(for: current).id != target.markerID {
+            let destination = taskStore.activeTasks(in: dragGroupID, progressMarkerID: target.markerID).first {
+                $0.id != draggedTaskID && (taskFrames.frames[$0.id]?.midY ?? .greatestFiniteMagnitude) > location.y
+            }
+            if taskStore.move(taskID: draggedTaskID, toProgressMarker: target.markerID, before: destination?.id, persist: false) {
+                hasPendingReorder = true
+                reorderFeedback += 1
+            }
+            return
+        }
         let candidates = taskStore.activeTasks(in: dragGroupID)
         guard let currentIndex = candidates.firstIndex(where: { $0.id == draggedTaskID }) else { return }
 
@@ -233,7 +279,7 @@ struct TaskListView: View {
     }
     private func endDragging() {
         if hasPendingReorder { taskStore.persistTaskOrder() }
-        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { draggedTaskID = nil; dragGroupID = nil; dragPreviewFrame = nil; dragTranslation = .zero }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { draggedTaskID = nil; dragGroupID = nil; dragDisplayGroupID = nil; dragPreviewFrame = nil; dragTranslation = .zero }
         hasPendingReorder = false
     }
 
@@ -249,6 +295,27 @@ struct TaskListView: View {
 /// without invalidating the entire list every time the scroll position changes.
 private final class TaskFrameCache {
     var frames: [UUID: CGRect] = [:]
+    struct ProgressZone { let markerID: UUID; let frame: CGRect }
+    var progressZones: [UUID?: [ProgressZone]] = [:]
+
+    func replaceProgressFrames(_ frames: [ProgressDropTarget: CGRect]) {
+        progressZones.removeAll(keepingCapacity: true)
+        for (target, frame) in frames {
+            progressZones[target.groupID, default: []].append(ProgressZone(markerID: target.markerID, frame: frame))
+        }
+    }
+}
+
+private struct ProgressDropTarget: Hashable {
+    let groupID: UUID?
+    let markerID: UUID
+}
+
+private struct ProgressFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [ProgressDropTarget: CGRect] = [:]
+    static func reduce(value: inout [ProgressDropTarget: CGRect], nextValue: () -> [ProgressDropTarget: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
 }
 
 private struct TaskFramePreferenceKey: PreferenceKey { static var defaultValue: [UUID: CGRect] = [:]; static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) { value.merge(nextValue(), uniquingKeysWith: { _, new in new }) } }
@@ -265,57 +332,61 @@ private struct TaskRow: View {
     let onDelete: () -> Void
     let onDragChanged: (DragGesture.Value) -> Void
     let onDragEnded: (DragGesture.Value) -> Void
+    @EnvironmentObject private var taskStore: TaskStore
     @State private var touchBeganAt: Date?
     @State private var isReordering = false
 
     var body: some View {
-        HStack(spacing: 12) {
-            Button(action: onComplete) {
-                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundStyle(task.isCompleted ? Color.green : Color.secondary)
-                    .frame(minWidth: 44, minHeight: 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(task.isCompleted ? "Mark \(task.title) active" : "Complete \(task.title)")
-            .accessibilityValue(task.isCompleted ? "Completed" : "Active")
-            primaryInteraction
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Task details: \(task.title)")
-                .accessibilityValue(task.description)
-                .accessibilityAddTraits(.isButton)
-                .accessibilityAction { onTaskTap() }
-                .accessibilityAction(named: "Task details", onLongPress)
-                .accessibilityActions {
-                    if let onCopy { Button("Copy", action: onCopy) }
-                    if let onArchive { Button("Archive") { _ = onArchive() } }
-                    Button("Delete", role: .destructive, action: onDelete)
-                }
-            if isDeleteVisible {
-                TaskRemovalButton(task: task, onArchive: onArchive, onDelete: onDelete)
-                    .buttonStyle(.bordered)
-                    .tint(task.isCompleted ? .accentColor : .red)
-            } else if task.isCompleted {
-                Menu {
-                    Button("Edit", systemImage: "pencil", action: onConfigure)
-                    if let onCopy { Button("Copy", systemImage: "doc.on.doc", action: onCopy) }
-                    if let onArchive { Button("Archive", systemImage: "archivebox") { _ = onArchive() } }
-                    Button("Delete", systemImage: "trash", role: .destructive, action: onDelete)
-                } label: {
-                    Image(systemName: "ellipsis.circle").frame(width: 44, height: 44)
-                }
-                .accessibilityLabel("Actions for \(task.title)")
-            } else {
-                Button(action: onConfigure) {
-                    Image(systemName: "gearshape")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 44, height: 44)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                Button(action: onComplete) {
+                    Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.title2)
+                        .foregroundStyle(task.isCompleted ? Color.green : Color.secondary)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Details for \(task.title)")
+                .accessibilityLabel(task.isCompleted ? "Mark \(task.title) active" : "Complete \(task.title)")
+                .accessibilityValue(task.isCompleted ? "Completed" : "Active")
+                primaryInteraction
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Task details: \(task.title)")
+                    .accessibilityValue(task.description)
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityAction { onTaskTap() }
+                    .accessibilityAction(named: "Task details", onLongPress)
+                    .accessibilityActions {
+                        if let onCopy { Button("Copy", action: onCopy) }
+                        if let onArchive { Button("Archive") { _ = onArchive() } }
+                        Button("Delete", role: .destructive, action: onDelete)
+                    }
+                if isDeleteVisible {
+                    TaskRemovalButton(task: task, onArchive: onArchive, onDelete: onDelete)
+                        .buttonStyle(.bordered)
+                        .tint(task.isCompleted ? .accentColor : .red)
+                } else if task.isCompleted {
+                    Menu {
+                        Button("Edit", systemImage: "pencil", action: onConfigure)
+                        if let onCopy { Button("Copy", systemImage: "doc.on.doc", action: onCopy) }
+                        if let onArchive { Button("Archive", systemImage: "archivebox") { _ = onArchive() } }
+                        Button("Delete", systemImage: "trash", role: .destructive, action: onDelete)
+                    } label: {
+                        Image(systemName: "ellipsis.circle").frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel("Actions for \(task.title)")
+                } else {
+                    Button(action: onConfigure) {
+                        Image(systemName: "gearshape")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Details for \(task.title)")
+                }
             }
+            if taskStore.progressConfiguration.isEnabled { TaskProgressIndicator(task: task) }
         }
         .padding(14)
         .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
@@ -329,27 +400,27 @@ private struct TaskRow: View {
                 .onLongPressGesture(perform: onLongPress)
         } else {
             taskContent
-        .gesture(isDeleteVisible ? nil : DragGesture(minimumDistance: 0, coordinateSpace: .named("taskList")).onChanged { value in
-            if touchBeganAt == nil { touchBeganAt = Date() }
-            let translation = value.translation
-            let isVerticalMove = abs(translation.height) > abs(translation.width)
-            guard isVerticalMove, abs(translation.height) >= 12 else { return }
-            isReordering = true
-            onDragChanged(value)
-        }.onEnded { value in
-            defer {
-                touchBeganAt = nil
-                isReordering = false
-            }
-            if isReordering {
-                onDragEnded(value)
-                return
-            }
-            let translation = value.translation
-            if abs(translation.width) > abs(translation.height), abs(translation.width) >= 45 { return }
-            if Date().timeIntervalSince(touchBeganAt ?? Date()) >= 0.45 { onLongPress() }
-            else { onTaskTap() }
-        })
+                .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .named("taskList")).onChanged { value in
+                    if touchBeganAt == nil { touchBeganAt = Date() }
+                    let translation = value.translation
+                    let isVerticalMove = abs(translation.height) > abs(translation.width)
+                    guard isVerticalMove, abs(translation.height) >= 12 else { return }
+                    isReordering = true
+                    onDragChanged(value)
+                }.onEnded { value in
+                    defer {
+                        touchBeganAt = nil
+                        isReordering = false
+                    }
+                    if isReordering {
+                        onDragEnded(value)
+                        return
+                    }
+                    let translation = value.translation
+                    if abs(translation.width) > abs(translation.height), abs(translation.width) >= 45 { return }
+                    if Date().timeIntervalSince(touchBeganAt ?? Date()) >= 0.45 { onLongPress() }
+                    else { onTaskTap() }
+                })
         }
     }
 

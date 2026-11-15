@@ -36,6 +36,7 @@
 		A10000000000000000000031 /* TaskProgress.swift */ = {isa = PBXBuildFile; fileRef = A20000000000000000000031; };
 		B10000000000000000000125 /* TaskProgressTests.swift */ = {isa = PBXBuildFile; fileRef = B10000000000000000000025; };
 		A10000000000000000000032 /* TaskProgressSettingsView.swift */ = {isa = PBXBuildFile; fileRef = A20000000000000000000032; };
+		B20000000000000000000122 /* TaskProgressUITests.swift */ = {isa = PBXBuildFile; fileRef = B20000000000000000000022; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -71,6 +72,7 @@
 		A20000000000000000000031 /* TaskProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskProgress.swift; sourceTree = "<group>"; };
 		B10000000000000000000025 /* TaskProgressTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskProgressTests.swift; sourceTree = "<group>"; };
 		A20000000000000000000032 /* TaskProgressSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskProgressSettingsView.swift; sourceTree = "<group>"; };
+		B20000000000000000000022 /* TaskProgressUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskProgressUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -152,7 +154,7 @@
 			sourceTree = "<group>";
 		};
 		B10000000000000000000009 = {isa = PBXGroup; children = (B10000000000000000000025,B10000000000000000000024,B10000000000000000000023,B10000000000000000000022,B10000000000000000000020,B10000000000000000000021,); path = PlanningAppTests; sourceTree = "<group>"; };
-		B20000000000000000000009 = {isa = PBXGroup; children = (B20000000000000000000021,B20000000000000000000020,); path = PlanningAppUITests; sourceTree = "<group>"; };
+		B20000000000000000000009 = {isa = PBXGroup; children = (B20000000000000000000022,B20000000000000000000021,B20000000000000000000020,); path = PlanningAppUITests; sourceTree = "<group>"; };
 		A40000000000000000000007 = {isa = PBXGroup; children = (A20000000000000000000027,); path = Resources; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
@@ -248,7 +250,7 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		B10000000000000000000003 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B10000000000000000000125,B10000000000000000000124,B10000000000000000000123,B10000000000000000000122,B10000000000000000000120,B10000000000000000000121,); runOnlyForDeploymentPostprocessing = 0; };
-		B20000000000000000000003 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B20000000000000000000121,B20000000000000000000120,); runOnlyForDeploymentPostprocessing = 0; };
+		B20000000000000000000003 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B20000000000000000000122,B20000000000000000000121,B20000000000000000000120,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
