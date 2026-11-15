@@ -147,7 +147,7 @@ struct TaskEditorView: View {
 
 }
 
-private struct KeyboardDismissButton: View {
+struct KeyboardDismissButton: View {
     let onDismiss: () -> Void
 
     var body: some View {
