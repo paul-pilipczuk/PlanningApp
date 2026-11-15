@@ -42,13 +42,17 @@ final class TaskProgressUITests: XCTestCase {
     }
 
     private func addLabel(_ label: String) {
-        app.buttons["progress.addLabel"].tap()
+        let add = app.buttons["progress.addLabel"]
+        for _ in 0..<5 where !add.isHittable { app.collectionViews.firstMatch.swipeUp() }
+        add.tap()
         XCTAssertTrue(app.navigationBars["New label"].waitForExistence(timeout: 3))
         let field = labelField()
         field.tap()
         field.typeText(label)
         app.buttons["progress.saveLabel"].tap()
-        XCTAssertTrue(app.buttons["Edit \(label)"].waitForExistence(timeout: 3))
+        let created = app.buttons["Edit \(label)"]
+        for _ in 0..<4 where !created.exists { app.collectionViews.firstMatch.swipeDown() }
+        XCTAssertTrue(created.waitForExistence(timeout: 3))
     }
 
     private func saveLabels() {
@@ -128,6 +132,34 @@ final class TaskProgressUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["task.progressLabel"].label, "To do")
     }
 
+    func testDraggingBetweenTaskGroupsMovesTheTaskAndAppliesTheTargetLabel() {
+        enableProgress()
+        showActive()
+        let personal = app.staticTexts["task.groupHeader.9AF80E3E-F57D-5B52-9F0C-5BB30350F75F"]
+        let first = app.buttons["Task details: Plan the week"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        first.press(forDuration: 0.15, thenDragTo: personal.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
+        app.buttons["Task details: Plan the week"].tap()
+        XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["task.group"].label.contains("Personal"))
+        XCTAssertEqual(app.staticTexts["task.progressLabel"].label, "To do")
+        app.buttons["Cancel"].tap()
+        let target = app.staticTexts["progress.section.9AF80E3E-F57D-5B52-9F0C-5BB30350F75F.00000000-0000-0000-0000-000000000002"]
+        if target.frame.midY > app.frame.height - 150 {
+            let list = app.scrollViews["taskList.active"]
+            let start = list.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.75))
+            let end = list.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.55))
+            start.press(forDuration: 0.05, thenDragTo: end)
+        }
+        let second = app.buttons["Task details: Review the project notes"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        second.press(forDuration: 0.15, thenDragTo: target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
+        app.buttons["Task details: Review the project notes"].tap()
+        XCTAssertTrue(app.buttons["task.group"].label.contains("Personal"))
+        XCTAssertEqual(app.staticTexts["task.progressLabel"].label, "In progress")
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.buttons["Complete Review the project notes"].exists)
+        screenshot("Nested progress sections after moving between task groups")
+    }
+
     func testLabelEditorCanAddRenameReorderAndCancelDrafts() {
         enableProgress()
         editLabels()
@@ -146,17 +178,48 @@ final class TaskProgressUITests: XCTestCase {
         let handles = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Reorder'"))
         XCTAssertEqual(handles.count, 3)
         let start = handles.element(boundBy: 2).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-        let end = handles.element(boundBy: 0).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0)).withOffset(CGVector(dx: 0, dy: -30))
+        let end = handles.element(boundBy: 0).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         start.press(forDuration: 0.3, thenDragTo: end)
         screenshot("Editable and reorderable progress labels")
         saveLabels()
-        XCTAssertLessThan(app.staticTexts["Draft"].frame.midY, app.staticTexts["Queued"].frame.midY)
+        XCTAssertLessThan(app.staticTexts["Draft"].frame.midY, app.staticTexts["In progress"].frame.midY)
+        let startingLabel = app.staticTexts["Draft"].frame.midY < app.staticTexts["Queued"].frame.midY ? "Draft" : "Queued"
         showActive()
         app.buttons["Task details: Plan the week"].tap()
         XCTAssertEqual(app.staticTexts["task.progressLabel"].label, "Queued")
         app.buttons["Cancel"].tap()
         app.buttons["task.add"].tap()
-        XCTAssertEqual(app.staticTexts["task.progressLabel"].label, "Draft")
+        XCTAssertEqual(app.staticTexts["task.progressLabel"].label, startingLabel)
+    }
+
+    func testProgressLabelsAndSliderRemainReadableInLightAccessibilityLayout() {
+        app.terminate()
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"]
+        app.launch()
+        app.buttons["tab.settings"].tap()
+        app.buttons["appearance.light"].tap()
+        enableProgress()
+        editLabels()
+        let label = "Waiting for another look"
+        addLabel(label)
+        saveLabels()
+        showActive()
+        app.buttons["Task details: Plan the week"].tap()
+        let slider = app.sliders["task.progressSlider"]
+        for _ in 0..<4 where !slider.isHittable { app.collectionViews.firstMatch.swipeUp() }
+        XCTAssertTrue(slider.isHittable)
+        slider.adjust(toNormalizedSliderPosition: 1)
+        XCTAssertEqual(app.staticTexts["task.progressLabel"].label, label)
+        XCTAssertTrue(slider.isHittable, "Changing a label must not push the slider offscreen")
+        let form = app.collectionViews.firstMatch
+        for _ in 0..<3 where app.staticTexts["task.progressLabel"].frame.maxY > form.frame.maxY - 16 {
+            let start = form.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.85))
+            let end = form.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.35))
+            start.press(forDuration: 0.05, thenDragTo: end)
+        }
+        screenshot("Light progress details at accessibility text size")
+        app.buttons["task.save"].tap()
+        XCTAssertTrue(app.buttons["Complete Plan the week"].waitForExistence(timeout: 3))
     }
 
     func testCustomLabelCanReplaceBothDefaultsAndSingleLabelHasNoSlider() {

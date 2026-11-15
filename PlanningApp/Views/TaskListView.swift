@@ -18,7 +18,7 @@ struct TaskListView: View {
     @State private var taskShowingDeleteID: UUID?
     @State private var draggedTaskID: UUID?
     @State private var dragGroupID: UUID?
-    @State private var dragDisplayGroupID: UUID?
+    @State private var pendingDrop: PendingTaskDrop?
     @State private var dragPreviewFrame: CGRect?
     @State private var dragTranslation: CGSize = .zero
     @State private var hasPendingReorder = false
@@ -37,13 +37,13 @@ struct TaskListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .systemBackground))
         .coordinateSpace(name: "taskList")
-        .onPreferenceChange(TaskFramePreferenceKey.self) { taskFrames.frames = $0 }
+        .onPreferenceChange(TaskFramePreferenceKey.self) { taskFrames.rows = $0 }
         .onPreferenceChange(ProgressFramePreferenceKey.self) { taskFrames.replaceProgressFrames($0) }
         .sensoryFeedback(.selection, trigger: reorderFeedback) { _, _ in preferences.hapticFeedback }
         .onChange(of: tab) { _, _ in
             endDragging()
             taskShowingDeleteID = nil
-            taskFrames.frames = [:]
+            taskFrames.rows = [:]
         }
         .sheet(isPresented: $isAddingTask) { editor(task: nil) }
         .sheet(item: $taskToEdit, onDismiss: {
@@ -82,21 +82,11 @@ struct TaskListView: View {
                 if visibleTasks.isEmpty {
                     emptyState
                 } else if tab == .active {
-                    ForEach(taskStore.activeSections.filter { !$0.tasks.isEmpty }) { section in
-                        Text(section.title)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .padding(.top, 8)
-                            .accessibilityAddTraits(.isHeader)
-                        if taskStore.progressConfiguration.isEnabled {
-                            ForEach(section.progressRows) { row in
-                                switch row {
-                                case .header(let marker, let isEmpty): progressHeader(marker, groupID: section.id, isEmpty: isEmpty)
-                                case .task(let task): taskRow(task)
-                                }
-                            }
-                        } else {
-                            ForEach(section.tasks) { task in taskRow(task) }
+                    ForEach(taskStore.activeRows) { row in
+                        switch row {
+                        case .group(let group, let isEmpty): groupHeader(group, isEmpty: isEmpty)
+                        case .progress(let groupID, let marker, let isEmpty): progressHeader(marker, groupID: groupID, isEmpty: isEmpty).padding(.leading, 12)
+                        case .task(let task): taskRow(task).padding(.leading, taskStore.progressConfiguration.isEnabled ? 12 : 0)
                         }
                     }
                 } else {
@@ -122,6 +112,28 @@ struct TaskListView: View {
         .id(tab)
     }
 
+    private func groupHeader(_ group: TaskGroup?, isEmpty: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(group?.name ?? "General").font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary).accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("task.groupHeader.\(group?.id.uuidString ?? "general")")
+            if isEmpty { Text("Drag a task here").font(.caption).foregroundStyle(.secondary) }
+        }
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .padding(.top, 8)
+        .background {
+            if pendingDrop?.isGroupHeading == true && pendingDrop?.groupID == group?.id {
+                RoundedRectangle(cornerRadius: 12).fill(Color.accentColor.opacity(0.1))
+            }
+        }
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(key: ProgressFramePreferenceKey.self,
+                    value: [ProgressDropTarget(groupID: group?.id, markerID: nil): proxy.frame(in: .named("taskList"))])
+            }
+        }
+    }
+
     private func progressHeader(_ marker: ProgressMarker, groupID: UUID?, isEmpty: Bool) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(marker.label).font(.caption.weight(.semibold))
@@ -133,7 +145,10 @@ struct TaskListView: View {
         .frame(maxWidth: .infinity, minHeight: isEmpty ? 72 : 32, alignment: .leading)
         .padding(.horizontal, isEmpty ? 12 : 0)
         .background {
-            if isEmpty { RoundedRectangle(cornerRadius: 14).fill(Color.primary.opacity(0.04)) }
+            let isTarget = pendingDrop?.isGroupHeading == false && pendingDrop?.groupID == groupID && pendingDrop?.markerID == marker.id
+            if isEmpty || isTarget {
+                RoundedRectangle(cornerRadius: 14).fill(isTarget ? Color.accentColor.opacity(0.1) : Color.primary.opacity(0.04))
+            }
         }
         .background {
             GeometryReader { proxy in
@@ -201,18 +216,24 @@ struct TaskListView: View {
                     updateTaskOrder(for: drag.location)
                 }, onDragEnded: { _ in endDragging() })
             .background {
-                if tab == .active { taskFrameReader(for: task.id) }
+                if tab == .active { taskFrameReader(for: task) }
             }
             .accessibilityAction(named: "Task details") { taskToEdit = task }
             .opacity(draggedTaskID == task.id ? 0 : 1)
             .simultaneousGesture(swipeGesture(for: task))
     }
 
-    private func taskFrameReader(for taskID: UUID) -> some View { GeometryReader { proxy in Color.clear.preference(key: TaskFramePreferenceKey.self, value: [taskID: proxy.frame(in: .named("taskList"))]) } }
+    private func taskFrameReader(for task: TaskItem) -> some View {
+        GeometryReader { proxy in
+            Color.clear.preference(key: TaskFramePreferenceKey.self,
+                value: [task.id: TaskRowGeometry(frame: proxy.frame(in: .named("taskList")), groupID: task.groupID,
+                    markerID: taskStore.progressConfiguration.isEnabled ? taskStore.progressMarker(for: task).id : nil)])
+        }
+    }
 
     @ViewBuilder private var dragPreview: some View {
         if let draggedTaskID, let task = taskStore.activeTasks(in: dragGroupID).first(where: { $0.id == draggedTaskID }), let dragPreviewFrame {
-            TaskRow(task: task, isDeleteVisible: false, onComplete: {}, onTaskTap: {}, onLongPress: {}, onConfigure: {}, onCopy: nil, onArchive: nil, onDelete: {}, onDragChanged: { _ in }, onDragEnded: { _ in })
+            TaskRow(task: previewTask(task), isDeleteVisible: false, onComplete: {}, onTaskTap: {}, onLongPress: {}, onConfigure: {}, onCopy: nil, onArchive: nil, onDelete: {}, onDragChanged: { _ in }, onDragEnded: { _ in })
                 .frame(width: dragPreviewFrame.width).scaleEffect(1.035).shadow(color: .black.opacity(0.45), radius: 14, y: 8)
                 .offset(x: dragPreviewFrame.minX, y: dragPreviewFrame.minY + dragTranslation.height).allowsHitTesting(false).accessibilityHidden(true)
         }
@@ -227,9 +248,9 @@ struct TaskListView: View {
     }
 
     private func beginDragging(_ task: TaskItem) {
-        guard draggedTaskID == nil, let frame = taskFrames.frames[task.id] else { return }
+        guard draggedTaskID == nil, let frame = taskFrames.rows[task.id]?.frame else { return }
         dragGroupID = task.groupID
-        dragDisplayGroupID = taskStore.groups.contains(where: { $0.id == task.groupID }) ? task.groupID : nil
+        pendingDrop = nil
         withAnimation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.8)) {
             draggedTaskID = task.id
             dragPreviewFrame = frame
@@ -239,35 +260,54 @@ struct TaskListView: View {
 
     private func updateTaskOrder(for location: CGPoint) {
         guard let draggedTaskID else { return }
-        if taskStore.progressConfiguration.isEnabled,
-           let target = taskFrames.progressZones[dragDisplayGroupID]?.first(where: { $0.frame.contains(location) }),
-           let current = taskStore.activeTasks(in: dragGroupID).first(where: { $0.id == draggedTaskID }),
-           taskStore.progressMarker(for: current).id != target.markerID {
-            let destination = taskStore.activeTasks(in: dragGroupID, progressMarkerID: target.markerID).first {
-                $0.id != draggedTaskID && (taskFrames.frames[$0.id]?.midY ?? .greatestFiniteMagnitude) > location.y
-            }
-            if taskStore.move(taskID: draggedTaskID, toProgressMarker: target.markerID, before: destination?.id, persist: false) {
-                hasPendingReorder = true
-                reorderFeedback += 1
-            }
+        guard let current = taskStore.activeTasks(in: dragGroupID).first(where: { $0.id == draggedTaskID }) else { return }
+        let currentMarker = taskStore.progressConfiguration.isEnabled ? taskStore.progressMarker(for: current).id : nil
+        if let target = taskFrames.dropZones.first(where: { $0.frame.contains(location) }) {
+            let markerID = target.markerID ?? currentMarker
+            if let pendingDrop, pendingDrop.groupID == target.groupID, pendingDrop.markerID == markerID,
+               pendingDrop.isGroupHeading == (target.markerID == nil), pendingDrop.anchorRowID == nil { return }
+            let destination = taskStore.activeTasks(in: target.groupID, progressMarkerID: markerID).first { $0.id != draggedTaskID }
+            setPendingDrop(PendingTaskDrop(groupID: target.groupID, markerID: markerID, beforeID: destination?.id,
+                                           isGroupHeading: target.markerID == nil))
             return
         }
-        let candidates = taskStore.activeTasks(in: dragGroupID)
+        if let target = taskFrames.rows.first(where: { $0.key != draggedTaskID && $0.value.frame.contains(location) }),
+           target.value.groupID != current.groupID || target.value.markerID != currentMarker {
+            let placeAfter = location.y > target.value.frame.midY
+            if let pendingDrop, pendingDrop.groupID == target.value.groupID, pendingDrop.markerID == target.value.markerID,
+               pendingDrop.anchorRowID == target.key, pendingDrop.placeAfter == placeAfter { return }
+            var beforeID: UUID? = target.key
+            if placeAfter {
+                let lane = taskStore.activeTasks(in: target.value.groupID, progressMarkerID: target.value.markerID)
+                if let index = lane.firstIndex(where: { $0.id == target.key }) {
+                    beforeID = index + 1 < lane.count ? lane[index + 1].id : nil
+                }
+            }
+            setPendingDrop(PendingTaskDrop(groupID: target.value.groupID, markerID: target.value.markerID,
+                                           beforeID: beforeID, isGroupHeading: false, anchorRowID: target.key, placeAfter: placeAfter))
+            return
+        }
+        if pendingDrop != nil { pendingDrop = nil }
+        let candidates = taskStore.activeTasks(in: dragGroupID, progressMarkerID: currentMarker)
         guard let currentIndex = candidates.firstIndex(where: { $0.id == draggedTaskID }) else { return }
 
         if currentIndex > 0,
-           let previousFrame = taskFrames.frames[candidates[currentIndex - 1].id],
+           let previousFrame = taskFrames.rows[candidates[currentIndex - 1].id]?.frame,
            location.y < previousFrame.midY {
             if taskStore.move(taskID: draggedTaskID, before: candidates[currentIndex - 1].id, persist: false) {
                 hasPendingReorder = true
                 reorderFeedback += 1
             }
         } else if currentIndex < candidates.count - 1,
-                  let nextFrame = taskFrames.frames[candidates[currentIndex + 1].id],
+                  let nextFrame = taskFrames.rows[candidates[currentIndex + 1].id]?.frame,
                   location.y > nextFrame.midY {
             let moved: Bool
             if currentIndex + 1 == candidates.count - 1 {
-                moved = taskStore.moveToEnd(taskID: draggedTaskID, persist: false)
+                if let currentMarker {
+                    moved = taskStore.move(taskID: draggedTaskID, toProgressMarker: currentMarker, persist: false)
+                } else {
+                    moved = taskStore.moveToEnd(taskID: draggedTaskID, persist: false)
+                }
             } else {
                 moved = taskStore.move(taskID: draggedTaskID, before: candidates[currentIndex + 2].id, persist: false)
             }
@@ -277,9 +317,26 @@ struct TaskListView: View {
             }
         }
     }
+    private func setPendingDrop(_ drop: PendingTaskDrop) {
+        guard pendingDrop != drop else { return }
+        pendingDrop = drop
+        reorderFeedback += 1
+    }
+
+    private func previewTask(_ task: TaskItem) -> TaskItem {
+        var preview = task
+        if let markerID = pendingDrop?.markerID { preview.progressMarkerID = markerID }
+        return preview
+    }
+
     private func endDragging() {
+        if let draggedTaskID, let drop = pendingDrop {
+            let moved = taskStore.move(taskID: draggedTaskID, toGroup: drop.groupID, progressMarkerID: drop.markerID,
+                                       before: drop.beforeID, persist: false)
+            hasPendingReorder = hasPendingReorder || moved
+        }
         if hasPendingReorder { taskStore.persistTaskOrder() }
-        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { draggedTaskID = nil; dragGroupID = nil; dragDisplayGroupID = nil; dragPreviewFrame = nil; dragTranslation = .zero }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { draggedTaskID = nil; dragGroupID = nil; pendingDrop = nil; dragPreviewFrame = nil; dragTranslation = .zero }
         hasPendingReorder = false
     }
 
@@ -294,21 +351,33 @@ struct TaskListView: View {
 /// Geometry is an input to drag handling, not rendered state. Keep measurements
 /// without invalidating the entire list every time the scroll position changes.
 private final class TaskFrameCache {
-    var frames: [UUID: CGRect] = [:]
-    struct ProgressZone { let markerID: UUID; let frame: CGRect }
-    var progressZones: [UUID?: [ProgressZone]] = [:]
+    var rows: [UUID: TaskRowGeometry] = [:]
+    struct DropZone { let groupID: UUID?; let markerID: UUID?; let frame: CGRect }
+    var dropZones: [DropZone] = []
 
     func replaceProgressFrames(_ frames: [ProgressDropTarget: CGRect]) {
-        progressZones.removeAll(keepingCapacity: true)
-        for (target, frame) in frames {
-            progressZones[target.groupID, default: []].append(ProgressZone(markerID: target.markerID, frame: frame))
-        }
+        dropZones = frames.map { DropZone(groupID: $0.key.groupID, markerID: $0.key.markerID, frame: $0.value) }
     }
+}
+
+private struct PendingTaskDrop: Equatable {
+    let groupID: UUID?
+    let markerID: UUID?
+    let beforeID: UUID?
+    let isGroupHeading: Bool
+    var anchorRowID: UUID? = nil
+    var placeAfter = false
+}
+
+private struct TaskRowGeometry: Equatable {
+    let frame: CGRect
+    let groupID: UUID?
+    let markerID: UUID?
 }
 
 private struct ProgressDropTarget: Hashable {
     let groupID: UUID?
-    let markerID: UUID
+    let markerID: UUID?
 }
 
 private struct ProgressFramePreferenceKey: PreferenceKey {
@@ -318,7 +387,7 @@ private struct ProgressFramePreferenceKey: PreferenceKey {
     }
 }
 
-private struct TaskFramePreferenceKey: PreferenceKey { static var defaultValue: [UUID: CGRect] = [:]; static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) { value.merge(nextValue(), uniquingKeysWith: { _, new in new }) } }
+private struct TaskFramePreferenceKey: PreferenceKey { static var defaultValue: [UUID: TaskRowGeometry] = [:]; static func reduce(value: inout [UUID: TaskRowGeometry], nextValue: () -> [UUID: TaskRowGeometry]) { value.merge(nextValue(), uniquingKeysWith: { _, new in new }) } }
 
 private struct TaskRow: View {
     let task: TaskItem
