@@ -10,6 +10,7 @@ struct PlanningRootView: View {
     @StateObject private var navigation = FloatingNavigationController()
     @State private var isAddingTask = false
     @State private var feedbackSequence: UInt64 = 0
+    @State private var hasInitializedScroll = false
 
     var body: some View {
         NavigationStack {
@@ -60,11 +61,16 @@ struct PlanningRootView: View {
             .scrollIndicators(.hidden)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+        .onAppear {
+            guard !hasInitializedScroll else { return }
+            hasInitializedScroll = true
+            navigation.updateScrollOffset(0)
+        }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
             taskStore.releasePresentationCaches()
         }
         .onChange(of: taskStore.incompleteTasks.isEmpty) { _, isEmpty in
-            if selectedTab == .active && isEmpty { navigation.reset() }
+            if selectedTab == .active && isEmpty { navigation.reset(); navigation.updateScrollOffset(0) }
         }
         .onChange(of: preferences.keepNavigationExpanded) { _, _ in navigation.expand() }
         .onReceive(taskStore.$feedbackMessage) { message in
@@ -152,6 +158,9 @@ struct PlanningRootView: View {
     private func selectTab(_ tab: PlanningTab) {
         guard tab != selectedTab else { return }
         navigation.reset()
+        // Every newly selected page starts at the top. Seed that known position so
+        // a coalesced first scroll update still counts as downward movement.
+        navigation.updateScrollOffset(0)
         withAnimation(.easeInOut(duration: reduceMotion ? 0.12 : 0.22)) {
             selectedTab = tab
         }
