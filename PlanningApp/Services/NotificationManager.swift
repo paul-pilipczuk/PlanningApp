@@ -48,7 +48,7 @@ final class NotificationManager {
         }
     }
 
-    private func makeTrigger(from settings: ReminderSettings) -> UNCalendarNotificationTrigger {
+    func makeTrigger(from settings: ReminderSettings) -> UNCalendarNotificationTrigger {
         var components = DateComponents()
         components.hour = settings.hour
         components.minute = settings.minute
