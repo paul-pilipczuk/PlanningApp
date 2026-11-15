@@ -123,17 +123,35 @@ final class SampleTaskDataTests: XCTestCase {
         let data = progressPerformanceData()
         let store = TaskStore(sampleData: data)
         XCTAssertEqual(readListCounts(store), 16_000)
+        let expectedRows = store.activeRows.count
         measure(metrics: [XCTClockMetric(), XCTCPUMetric(), XCTMemoryMetric()]) {
-            for _ in 0..<50 { XCTAssertEqual(readListCounts(store), 16_000) }
+            for _ in 0..<50 {
+                XCTAssertEqual(readListCounts(store), 16_000)
+                XCTAssertEqual(store.activeRows.count, expectedRows)
+            }
         }
     }
 
     func testColdProgressCollectionsPerformance() {
         let data = progressPerformanceData()
+        let expectedRows = TaskStore(sampleData: data).activeRows.count
         measure(metrics: [XCTClockMetric(), XCTCPUMetric(), XCTMemoryMetric()]) {
             for _ in 0..<5 {
                 let store = TaskStore(sampleData: data)
                 XCTAssertEqual(readListCounts(store), 16_000)
+                XCTAssertEqual(store.activeRows.count, expectedRows)
+            }
+        }
+    }
+
+    func testColdTaskPresentationRowsWithProgressOffPerformance() {
+        let data = performanceData()
+        let expectedRows = TaskStore(sampleData: data).activeRows.count
+        measure(metrics: [XCTClockMetric(), XCTCPUMetric(), XCTMemoryMetric()]) {
+            for _ in 0..<5 {
+                let store = TaskStore(sampleData: data)
+                XCTAssertEqual(readListCounts(store), 16_000)
+                XCTAssertEqual(store.activeRows.count, expectedRows)
             }
         }
     }

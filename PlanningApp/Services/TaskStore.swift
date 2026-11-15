@@ -18,11 +18,12 @@ final class TaskStore: ObservableObject {
         }
     }
     @Published private(set) var groups: [TaskGroup] {
-        didSet { cachedSections = nil; cachedGroupNames = nil }
+        didSet { cachedSections = nil; cachedActiveRows = nil; cachedGroupNames = nil }
     }
     @Published private(set) var progressConfiguration: ProgressConfiguration {
         didSet {
             cachedSections = nil
+            cachedActiveRows = nil
             cachedActiveGroups.removeAll(keepingCapacity: false)
             cachedProgressMarkers = nil
             cachedProgressPositions = nil
@@ -46,6 +47,7 @@ final class TaskStore: ObservableObject {
     private var cachedCompleted: [TaskItem]?
     private var cachedArchived: [TaskItem]?
     private var cachedSections: [TaskSection]?
+    private var cachedActiveRows: [ActiveTaskRow]?
     private struct ActiveLane: Hashable {
         let groupID: UUID?
         let markerID: UUID?
@@ -145,6 +147,28 @@ final class TaskStore: ObservableObject {
         let result = named + (general.isEmpty ? [] : [makeSection(group: nil, tasks: general)])
         cachedSections = result
         return result
+    }
+
+    var activeRows: [ActiveTaskRow] {
+        if let cachedActiveRows { return cachedActiveRows }
+        var rows: [ActiveTaskRow] = []
+        rows.reserveCapacity(incompleteTasks.count + groups.count + 1)
+        for section in activeSections {
+            rows.append(.group(section.group, isEmpty: section.tasks.isEmpty))
+            if progressConfiguration.isEnabled {
+                for row in section.progressRows {
+                    switch row {
+                    case .header(let marker, let isEmpty): rows.append(.progress(groupID: section.id, marker: marker, isEmpty: isEmpty))
+                    case .task(let task): rows.append(.task(task))
+                    }
+                }
+            } else {
+                for task in section.tasks { rows.append(.task(task)) }
+            }
+        }
+        if !activeSections.contains(where: { $0.group == nil }) { rows.append(.group(nil, isEmpty: true)) }
+        cachedActiveRows = rows
+        return rows
     }
 
     /// Raw group membership retains the existing group-local reorder contract,
@@ -270,6 +294,7 @@ final class TaskStore: ObservableObject {
         cachedCompleted = nil
         cachedArchived = nil
         cachedSections = nil
+        cachedActiveRows = nil
         cachedActiveGroups.removeAll(keepingCapacity: false)
     }
 
@@ -393,30 +418,41 @@ final class TaskStore: ObservableObject {
     /// An explicit section drop changes progress and order in the same candidate save.
     @discardableResult
     func move(taskID: UUID, toProgressMarker markerID: UUID, before destinationID: UUID? = nil, persist: Bool = true) -> Bool {
-        guard !hasLoadFailure, progressConfiguration.isEnabled, progressMarkersByID[markerID] != nil,
+        guard progressConfiguration.isEnabled, let source = tasks.first(where: { $0.id == taskID }) else { return false }
+        let groupID = groups.contains(where: { $0.id == source.groupID }) ? source.groupID : nil
+        return move(taskID: taskID, toGroup: groupID, progressMarkerID: markerID, before: destinationID, persist: persist)
+    }
+
+    /// A group-heading drop retains progress; a progress-heading/row drop supplies its label.
+    @discardableResult
+    func move(taskID: UUID, toGroup groupID: UUID?, progressMarkerID: UUID? = nil, before destinationID: UUID? = nil, persist: Bool = true) -> Bool {
+        guard !hasLoadFailure, groupID == nil || groups.contains(where: { $0.id == groupID }),
               let source = tasks.firstIndex(where: { $0.id == taskID }),
               !tasks[source].isCompleted, !tasks[source].isArchived else { return false }
+        if let progressMarkerID, progressMarkersByID[progressMarkerID] == nil { return false }
+        let markerID = progressMarkerID ?? (progressConfiguration.isEnabled ? progressMarker(for: tasks[source]).id : tasks[source].progressMarkerID)
         if let destinationID {
             guard destinationID != taskID,
                   let destination = tasks.first(where: { $0.id == destinationID }),
-                  !destination.isCompleted, !destination.isArchived,
-                  destination.groupID == tasks[source].groupID,
-                  progressMarker(for: destination).id == markerID else { return false }
+                  !destination.isCompleted, !destination.isArchived, destination.groupID == groupID,
+                  !progressConfiguration.isEnabled || progressMarker(for: destination).id == markerID else { return false }
         }
         var candidate = tasks
         var task = candidate.remove(at: source)
+        task.groupID = groupID
         task.progressMarkerID = markerID
         let insertionIndex: Int
         if let destinationID, let index = candidate.firstIndex(where: { $0.id == destinationID }) {
             insertionIndex = index
         } else if let last = candidate.lastIndex(where: {
-            !$0.isCompleted && !$0.isArchived && $0.groupID == task.groupID && progressMarker(for: $0).id == markerID
+            !$0.isCompleted && !$0.isArchived && $0.groupID == groupID &&
+                (!progressConfiguration.isEnabled || progressMarker(for: $0).id == markerID)
         }) {
             insertionIndex = last + 1
-        } else {
-            insertionIndex = min(source, candidate.count)
-        }
-        guard insertionIndex != source || task.progressMarkerID != tasks[source].progressMarkerID else { return false }
+        } else if let last = candidate.lastIndex(where: { !$0.isCompleted && !$0.isArchived && $0.groupID == groupID }) {
+            insertionIndex = last + 1
+        } else { insertionIndex = min(source, candidate.count) }
+        guard insertionIndex != source || task.groupID != tasks[source].groupID || task.progressMarkerID != tasks[source].progressMarkerID else { return false }
         candidate.insert(task, at: insertionIndex)
         if persist { return commit(candidate, groups: groups) }
         tasks = candidate

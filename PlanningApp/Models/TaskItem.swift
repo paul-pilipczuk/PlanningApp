@@ -120,6 +120,22 @@ enum TaskProgressRow: Identifiable {
     }
 }
 
+/// Stable task identities span every task group as well as its progress sections.
+enum ActiveTaskRow: Identifiable {
+    case group(TaskGroup?, isEmpty: Bool)
+    case progress(groupID: UUID?, marker: ProgressMarker, isEmpty: Bool)
+    case task(TaskItem)
+
+    enum ID: Hashable { case group(UUID?), progress(UUID?, UUID), task(UUID) }
+    var id: ID {
+        switch self {
+        case .group(let group, _): .group(group?.id)
+        case .progress(let groupID, let marker, _): .progress(groupID, marker.id)
+        case .task(let task): .task(task.id)
+        }
+    }
+}
+
 struct TaskProgressSection: Identifiable {
     let marker: ProgressMarker
     let tasks: [TaskItem]

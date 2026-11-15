@@ -244,6 +244,81 @@ final class TaskProgressTests: XCTestCase {
         XCTAssertFalse(store.setProgress(taskID: UUID(), markerID: todo.id))
     }
 
+    func testExplicitGroupMovePersistsProgressFieldsAndStableRowIdentity() throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let work = TaskGroup(name: "Work")
+        let personal = TaskGroup(name: "Personal")
+        let source = TaskItem(title: "Keep my details", description: "Notes", groupID: work.id, progressMarkerID: todo.id)
+        let target = TaskItem(title: "Target", groupID: personal.id, progressMarkerID: doing.id)
+        let snapshot = PlanningData(tasks: [source, target], groups: [work, personal], progressConfiguration: ProgressConfiguration(isEnabled: true))
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try JSONEncoder().encode(snapshot).write(to: url)
+        let store = TaskStore(storageURL: url, notifications: nil)
+        let beforeIDs = Set(store.activeRows.compactMap { row -> UUID? in
+            if case .task(let task) = row { return task.id }; return nil
+        })
+        XCTAssertTrue(store.move(taskID: source.id, toGroup: personal.id, progressMarkerID: doing.id, before: target.id))
+        let moved = try XCTUnwrap(store.tasks.first(where: { $0.id == source.id }))
+        XCTAssertEqual(moved.groupID, personal.id)
+        XCTAssertEqual(moved.progressMarkerID, doing.id)
+        XCTAssertEqual(moved.title, source.title)
+        XCTAssertEqual(moved.description, source.description)
+        XCTAssertEqual(moved.reminder, source.reminder)
+        XCTAssertFalse(moved.isCompleted)
+        XCTAssertEqual(Set(store.activeRows.compactMap { row -> UUID? in
+            if case .task(let task) = row { return task.id }; return nil
+        }), beforeIDs)
+        XCTAssertEqual(Set(store.activeRows.map(\.id)).count, store.activeRows.count)
+        XCTAssertEqual(TaskStore(storageURL: url, notifications: nil).tasks, store.tasks)
+    }
+
+    func testGroupHeadingMoveRetainsProgressAndGeneralCanReceiveTasks() {
+        let work = TaskGroup(name: "Work")
+        let personal = TaskGroup(name: "Personal")
+        let task = TaskItem(title: "Doing", groupID: work.id, progressMarkerID: doing.id)
+        let store = enabledStore([task], groups: [work, personal])
+        XCTAssertTrue(store.activeRows.contains { if case .group(let group, true) = $0 { return group?.id == personal.id }; return false })
+        XCTAssertTrue(store.move(taskID: task.id, toGroup: personal.id))
+        XCTAssertEqual(store.tasks[0].progressMarkerID, doing.id)
+        XCTAssertTrue(store.move(taskID: task.id, toGroup: nil))
+        XCTAssertNil(store.tasks[0].groupID)
+        XCTAssertEqual(store.progressMarker(for: store.tasks[0]), doing)
+        XCTAssertFalse(store.move(taskID: task.id, toGroup: UUID()))
+    }
+
+    func testFailedCrossGroupDropRestoresGroupProgressAndPresentation() throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let work = TaskGroup(name: "Work")
+        let personal = TaskGroup(name: "Personal")
+        let task = TaskItem(title: "Original", groupID: work.id, progressMarkerID: todo.id)
+        let data = PlanningData(tasks: [task], groups: [work, personal], progressConfiguration: ProgressConfiguration(isEnabled: true))
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let bytes = try JSONEncoder().encode(data)
+        try bytes.write(to: url)
+        let store = TaskStore(storageURL: url, notifications: nil, write: { _, _ in throw CocoaError(.fileWriteNoPermission) })
+        _ = store.activeRows
+        XCTAssertTrue(store.move(taskID: task.id, toGroup: personal.id, progressMarkerID: doing.id, persist: false))
+        _ = store.activeRows
+        XCTAssertFalse(store.persistTaskOrder())
+        XCTAssertEqual(store.tasks, [task])
+        XCTAssertEqual(store.activeSections.first?.tasks.map(\.id), [task.id])
+        XCTAssertEqual(try Data(contentsOf: url), bytes)
+    }
+
+    func testGroupMoveWhileProgressIsOffPreservesTheSavedMarker() {
+        let work = TaskGroup(name: "Work")
+        let task = TaskItem(title: "Work", groupID: work.id, progressMarkerID: doing.id)
+        let store = TaskStore(sampleData: PlanningData(tasks: [task], groups: [work]))
+        XCTAssertTrue(store.move(taskID: task.id, toGroup: nil))
+        XCTAssertNil(store.tasks[0].groupID)
+        XCTAssertEqual(store.tasks[0].progressMarkerID, doing.id)
+        XCTAssertFalse(store.progressConfiguration.isEnabled)
+        store.releasePresentationCaches()
+        XCTAssertEqual(store.activeRows.filter { if case .task = $0 { return true }; return false }.count, 1)
+    }
+
     func testCorruptProgressSnapshotsAreProtected() throws {
         let url = temporaryURL()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
