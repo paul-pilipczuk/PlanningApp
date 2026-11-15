@@ -316,10 +316,10 @@ final class TaskStore: ObservableObject {
 
     @discardableResult
     func delete(taskID: UUID) -> Bool {
-        guard let task = tasks.first(where: { $0.id == taskID }) else { return false }
+        guard tasks.contains(where: { $0.id == taskID }) else { return false }
         guard commit(tasks.filter { $0.id != taskID }, groups: groups) else { return false }
         reconcileReminder(for: taskID)
-        feedbackMessage = "Permanently deleted “\(task.title)”."
+        feedbackMessage = "Task deleted"
         return true
     }
 
@@ -330,7 +330,7 @@ final class TaskStore: ObservableObject {
         candidate[index].archivedAt = now()
         guard commit(candidate, groups: groups) else { return false }
         reconcileReminder(for: taskID)
-        feedbackMessage = "Archived “\(candidate[index].title)”. You can restore it from Archived."
+        feedbackMessage = "Moved to Archived"
         return true
     }
 
@@ -342,7 +342,7 @@ final class TaskStore: ObservableObject {
         candidate[index].isCompleted = true
         guard commit(candidate, groups: groups) else { return false }
         reconcileReminder(for: taskID)
-        feedbackMessage = "Restored “\(candidate[index].title)” to Completed."
+        feedbackMessage = "Moved to Completed"
         return true
     }
 

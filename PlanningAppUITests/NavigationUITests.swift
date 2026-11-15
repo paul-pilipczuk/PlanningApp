@@ -421,6 +421,25 @@ final class NavigationUITests: XCTestCase {
         toggle.tap()
     }
 
+    func testMoveFeedbackIsBriefAndDoesNotMoveThePageHeaderOrNavigation() {
+        app.buttons["tab.completed"].tap()
+        let header = app.staticTexts["page.title"].frame
+        let navigation = app.otherElements["navigation.bar"].frame
+        app.buttons["Actions for Set up the planning app"].tap()
+        app.buttons["Archive"].tap()
+        let feedback = app.buttons["task.feedback"]
+        XCTAssertTrue(feedback.waitForExistence(timeout: 2))
+        XCTAssertEqual(feedback.label, "Moved to Archived")
+        XCTAssertEqual(app.staticTexts["page.title"].frame.minY, header.minY, accuracy: 1)
+        XCTAssertEqual(app.otherElements["navigation.bar"].frame.minY, navigation.minY, accuracy: 1)
+        XCTAssertGreaterThan(feedback.frame.minY, app.frame.height / 2)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Short status message above stable navigation"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        assertDisappears(feedback)
+    }
+
     func testTaskDetailsAndCreationRemainAvailable() {
         app.buttons["Details for Plan the week"].tap()
         XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))

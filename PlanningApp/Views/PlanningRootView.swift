@@ -9,6 +9,7 @@ struct PlanningRootView: View {
     @State private var selectedTab: PlanningTab = .active
     @StateObject private var navigation = FloatingNavigationController()
     @State private var isAddingTask = false
+    @State private var feedbackSequence: UInt64 = 0
 
     var body: some View {
         NavigationStack {
@@ -23,19 +24,18 @@ struct PlanningRootView: View {
                             isAddingTask = true
                         }
                     }
-                    if !taskStore.hasLoadFailure, let message = taskStore.errorMessage ?? taskStore.feedbackMessage {
+                    if !taskStore.hasLoadFailure, let message = taskStore.errorMessage {
                         HStack(alignment: .top) {
-                            Text(message).font(.footnote).lineLimit(3).accessibilityLabel(message)
+                            Text(message).font(.footnote).fixedSize(horizontal: false, vertical: true).accessibilityLabel(message)
                             Spacer(minLength: 8)
                             Button {
                                 taskStore.dismissError()
-                                taskStore.feedbackMessage = nil
                             } label: { Image(systemName: "xmark.circle.fill").frame(width: 44, height: 44) }
                             .accessibilityLabel("Dismiss message")
                         }
                         .padding(.horizontal, 16)
                         .background(Color(uiColor: .secondarySystemBackground))
-                        .accessibilityIdentifier("task.feedback")
+                        .accessibilityIdentifier("task.error")
                     }
                 }
                 .background(pageBackground)
@@ -67,18 +67,52 @@ struct PlanningRootView: View {
             if selectedTab == .active && isEmpty { navigation.reset() }
         }
         .onChange(of: preferences.keepNavigationExpanded) { _, _ in navigation.expand() }
-        .onChange(of: taskStore.feedbackMessage) { _, message in
-            if let message { UIAccessibility.post(notification: .announcement, argument: message) }
+        .onReceive(taskStore.$feedbackMessage) { message in
+            if let message {
+                feedbackSequence &+= 1
+                UIAccessibility.post(notification: .announcement, argument: message)
+            }
+        }
+        .task(id: feedbackSequence) {
+            guard let message = taskStore.feedbackMessage else { return }
+            do { try await Task.sleep(for: .seconds(voiceOverEnabled ? 6 : 3)) }
+            catch { return }
+            guard !Task.isCancelled, taskStore.feedbackMessage == message else { return }
+            taskStore.feedbackMessage = nil
         }
         // Anchor navigation to the window-sized stack, independently of page layout.
         .overlay(alignment: .bottom) {
-            FloatingNavigationBar(selectedTab: selectedTab,
-                                  isCollapsed: navigation.isCollapsed && !voiceOverEnabled && !preferences.keepNavigationExpanded,
-                                  onSelect: selectTab,
-                                  onExpand: { navigation.expand() })
-                .padding(.horizontal, 16)
-                .padding(.bottom, 8)
-                .transaction { $0.animation = nil }
+            VStack(spacing: 12) {
+                if !taskStore.hasLoadFailure, taskStore.errorMessage == nil, let message = taskStore.feedbackMessage {
+                    Button { taskStore.feedbackMessage = nil } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "checkmark")
+                            Text(message).fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 0)
+                            Image(systemName: "xmark").font(.caption).accessibilityHidden(true)
+                        }
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                        .frame(minHeight: 44)
+                        .padding(.horizontal, 16).padding(.vertical, 4)
+                        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(message)
+                    .accessibilityHint("Dismiss status message")
+                    .accessibilityIdentifier("task.feedback")
+                    .padding(.horizontal, 16)
+                    .transition(.opacity)
+                }
+                FloatingNavigationBar(selectedTab: selectedTab,
+                                      isCollapsed: navigation.isCollapsed && !voiceOverEnabled && !preferences.keepNavigationExpanded,
+                                      onSelect: selectTab,
+                                      onExpand: { navigation.expand() })
+                    .padding(.horizontal, 16)
+                    .transaction { $0.animation = nil }
+            }
+            .padding(.bottom, 8)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: taskStore.feedbackMessage != nil)
         }
     }
 
