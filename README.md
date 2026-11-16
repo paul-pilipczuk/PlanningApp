@@ -46,13 +46,19 @@ Collapse requires actual scrollable content. A short Completed list or Settings 
 
 Settings offers **System**, **Light**, and **Dark** appearance, **Keep navigation expanded**, **Haptic feedback**, notification permission status, and version/build information. Dark is the initial default; your choice applies to sheets and navigation and survives relaunch. The app retains its rounded task rows and familiar system controls in both appearances.
 
-The existing active-task drag interaction is preserved for a separate UX iteration. A vertical drag beginning on an active task can reorder it; scrolling in the list margin moves that list. Completed rows scroll normally. Reordering does not collapse navigation.
+Task progress is optional and starts disabled. Enable **Task progress** in Settings to expand **To do** and **In progress**. **Edit labels** supports adding, renaming, removing, and reordering labels. The saved order applies within every Active task group, including General; the first label starts new tasks. Keep at least one label. Removing a used label moves its tasks to the first remaining label after Save; Cancel discards draft changes.
+
+Enabled task cards show a slim progress bar without repeating their section label. Task details use a stepped slider between labels. Dragging into another progress subgroup changes the task’s label; dragging within a subgroup keeps manual order. Subgroups are lightly indented within each task group. Dropping onto another task-group heading preserves progress, while dropping into its progress subgroup applies that label. Empty groups and General can receive tasks. Transfers apply together on release to keep drop targets steady. Progress does not complete a task: the completion circle remains separate, and only actual completion fills the bar. The bar represents label position without estimating work or time. Disabling progress hides the controls and retains assignments for later use. Copy starts a new task at the starting label; completion/archive/restore retain the original task’s marker.
+
+Successful archive/restore/delete actions show a short status message above navigation, clearing after three seconds (six with VoiceOver). Tap it to dismiss sooner. Save errors remain visible and wrap fully. Messages do not shift the page header or navigation.
+
+A vertical drag beginning on active task text can reorder it within its task group; scrolling in the list margin moves that list. Completed rows scroll normally. Reordering does not collapse navigation.
 
 Completing a task moves it to Completed; marking it active returns it to its group. Completing a task cancels its pending reminder. Marking it incomplete schedules the reminder again if it remains enabled.
 
 ## Privacy and reminders
 
-Task data, including archives, is stored locally as a versioned JSON snapshot in the app’s Application Support directory. Older supported snapshots migrate when saved. Load failures protect the existing file; failed saves leave the saved tasks unchanged. The app does not send task content off the phone.
+Task data, archives, progress labels, and assignments are stored together locally as a versioned JSON snapshot in the app’s Application Support directory. Older supported snapshots migrate when saved. Load failures protect the existing file; failed saves leave the saved tasks unchanged. The app does not send task content off the phone.
 
 Reminders use `UNUserNotificationCenter`, Apple’s local-notification API. When notifications are enabled for a task, iOS asks for permission. A daily reminder repeats each day at the selected time; a weekly reminder repeats on the chosen weekday and time. If **Repeat until done** is turned off, only the next matching notification is scheduled.
 
