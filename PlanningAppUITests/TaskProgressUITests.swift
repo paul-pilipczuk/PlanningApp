@@ -144,13 +144,13 @@ final class TaskProgressUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["task.progressLabel"].label, "To do")
         app.buttons["Cancel"].tap()
         let target = app.staticTexts["progress.section.9AF80E3E-F57D-5B52-9F0C-5BB30350F75F.00000000-0000-0000-0000-000000000002"]
-        if target.frame.midY > app.frame.height - 150 {
+        if target.frame.midY > app.otherElements["navigation.bar"].frame.minY - 8 {
             let list = app.scrollViews["taskList.active"]
             let start = list.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.75))
-            let end = list.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.55))
-            start.press(forDuration: 0.05, thenDragTo: end)
+            let end = list.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.68))
+            start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0.3)
         }
-        let second = app.buttons["Task details: Review the project notes"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let second = app.buttons["Task details: Review the project notes"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9))
         second.press(forDuration: 0.15, thenDragTo: target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
         app.buttons["Task details: Review the project notes"].tap()
         XCTAssertTrue(app.buttons["task.group"].label.contains("Personal"))

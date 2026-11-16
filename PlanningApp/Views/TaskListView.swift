@@ -85,8 +85,8 @@ struct TaskListView: View {
                     ForEach(taskStore.activeRows) { row in
                         switch row {
                         case .group(let group, let isEmpty): groupHeader(group, isEmpty: isEmpty)
-                        case .progress(let groupID, let marker, let isEmpty): progressHeader(marker, groupID: groupID, isEmpty: isEmpty).padding(.leading, 12)
-                        case .task(let task): taskRow(task).padding(.leading, taskStore.progressConfiguration.isEnabled ? 12 : 0)
+                        case .progress(let groupID, let marker, let isEmpty): progressHeader(marker, groupID: groupID, isEmpty: isEmpty).padding(.leading, 8)
+                        case .task(let task): taskRow(task).padding(.leading, taskStore.progressConfiguration.isEnabled ? 8 : 0)
                         }
                     }
                 } else {
@@ -119,8 +119,8 @@ struct TaskListView: View {
                 .accessibilityIdentifier("task.groupHeader.\(group?.id.uuidString ?? "general")")
             if isEmpty { Text("Drag a task here").font(.caption).foregroundStyle(.secondary) }
         }
-        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-        .padding(.top, 8)
+        .frame(maxWidth: .infinity, minHeight: isEmpty ? 44 : 28, alignment: .leading)
+        .padding(.top, 4)
         .background {
             if pendingDrop?.isGroupHeading == true && pendingDrop?.groupID == group?.id {
                 RoundedRectangle(cornerRadius: 12).fill(Color.accentColor.opacity(0.1))
@@ -129,7 +129,7 @@ struct TaskListView: View {
         .background {
             GeometryReader { proxy in
                 Color.clear.preference(key: ProgressFramePreferenceKey.self,
-                    value: [ProgressDropTarget(groupID: group?.id, markerID: nil): proxy.frame(in: .named("taskList"))])
+                    value: [ProgressDropTarget(groupID: group?.id, markerID: nil): expandedDropFrame(proxy.frame(in: .named("taskList")))])
             }
         }
     }
@@ -142,8 +142,8 @@ struct TaskListView: View {
             if isEmpty { Text("Drag a task here").font(.caption) }
         }
         .foregroundStyle(.secondary)
-        .frame(maxWidth: .infinity, minHeight: isEmpty ? 72 : 32, alignment: .leading)
-        .padding(.horizontal, isEmpty ? 12 : 0)
+        .frame(maxWidth: .infinity, minHeight: isEmpty ? 44 : 24, alignment: .leading)
+        .padding(.horizontal, isEmpty ? 10 : 0)
         .background {
             let isTarget = pendingDrop?.isGroupHeading == false && pendingDrop?.groupID == groupID && pendingDrop?.markerID == marker.id
             if isEmpty || isTarget {
@@ -153,9 +153,14 @@ struct TaskListView: View {
         .background {
             GeometryReader { proxy in
                 Color.clear.preference(key: ProgressFramePreferenceKey.self,
-                    value: [ProgressDropTarget(groupID: groupID, markerID: marker.id): proxy.frame(in: .named("taskList"))])
+                    value: [ProgressDropTarget(groupID: groupID, markerID: marker.id): expandedDropFrame(proxy.frame(in: .named("taskList")))])
             }
         }
+    }
+
+    /// Compact headings still receive a forgiving 44-point vertical drop region.
+    private func expandedDropFrame(_ frame: CGRect) -> CGRect {
+        frame.insetBy(dx: 0, dy: -max(0, (44 - frame.height) / 2))
     }
 
     private var emptyActiveCanvas: some View {
@@ -262,7 +267,7 @@ struct TaskListView: View {
         guard let draggedTaskID else { return }
         guard let current = taskStore.activeTasks(in: dragGroupID).first(where: { $0.id == draggedTaskID }) else { return }
         let currentMarker = taskStore.progressConfiguration.isEnabled ? taskStore.progressMarker(for: current).id : nil
-        if let target = taskFrames.dropZones.first(where: { $0.frame.contains(location) }) {
+        if let target = taskFrames.dropTarget(at: location) {
             let markerID = target.markerID ?? currentMarker
             if let pendingDrop, pendingDrop.groupID == target.groupID, pendingDrop.markerID == markerID,
                pendingDrop.isGroupHeading == (target.markerID == nil), pendingDrop.anchorRowID == nil { return }
@@ -354,6 +359,19 @@ private final class TaskFrameCache {
     var rows: [UUID: TaskRowGeometry] = [:]
     struct DropZone { let groupID: UUID?; let markerID: UUID?; let frame: CGRect }
     var dropZones: [DropZone] = []
+
+    /// Expanded header regions can touch; choose the nearest heading deterministically.
+    func dropTarget(at point: CGPoint) -> DropZone? {
+        var nearest: DropZone?
+        for zone in dropZones where zone.frame.contains(point) {
+            if let current = nearest {
+                let distance = abs(zone.frame.midY - point.y)
+                let previous = abs(current.frame.midY - point.y)
+                if distance < previous || (distance == previous && zone.markerID != nil && current.markerID == nil) { nearest = zone }
+            } else { nearest = zone }
+        }
+        return nearest
+    }
 
     func replaceProgressFrames(_ frames: [ProgressDropTarget: CGRect]) {
         dropZones = frames.map { DropZone(groupID: $0.key.groupID, markerID: $0.key.markerID, frame: $0.value) }
