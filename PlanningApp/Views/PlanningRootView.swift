@@ -207,7 +207,7 @@ private struct PlanningPageHeader: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 4)
         .background {
-            if isCompact && !reduceTransparency && contrast != .increased {
+            if isCompact && tab != .settings && !reduceTransparency && contrast != .increased {
                 Rectangle().fill(.regularMaterial)
             } else {
                 Color(uiColor: tab == .settings ? .systemGroupedBackground : .systemBackground)
