@@ -131,6 +131,11 @@ private struct ProgressLabelEditor: View {
                     if isDuplicate { Text("A label with this name already exists.") }
                 }
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if isFocused {
+                    KeyboardDismissBar { isFocused = false }
+                }
+            }
             .navigationTitle(marker == nil ? "New label" : "Edit label")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -139,9 +144,6 @@ private struct ProgressLabelEditor: View {
                     Button("Save") { onSave(trimmedName); dismiss() }
                         .disabled(trimmedName.isEmpty || isDuplicate)
                         .accessibilityIdentifier("progress.saveLabel")
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    if isFocused { Spacer(); KeyboardDismissButton { isFocused = false } }
                 }
             }
             .task { isFocused = true }

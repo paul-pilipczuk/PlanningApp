@@ -104,14 +104,13 @@ struct TaskEditorView: View {
                 }
             }
             .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if focusedField != nil {
+                    KeyboardDismissBar { focusedField = nil }
+                }
+            }
             .navigationTitle(task == nil ? "New Task" : "Task Details")
             .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    if focusedField != nil {
-                        Spacer()
-                        KeyboardDismissButton { focusedField = nil }
-                    }
-                }
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(task == nil ? "Add" : "Save") {
@@ -170,6 +169,22 @@ struct KeyboardDismissButton: View {
     }
 }
 
+/// A stable footer avoids SwiftUI's invalid input-accessory sizing on current iOS.
+/// The form's keyboard safe area keeps the same dismiss control above the keyboard.
+struct KeyboardDismissBar: View {
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack {
+            Spacer()
+            KeyboardDismissButton(onDismiss: onDismiss)
+        }
+        .padding(.horizontal, 16)
+        .background(.bar)
+        .overlay(alignment: .top) { Divider().accessibilityHidden(true) }
+    }
+}
+
 private struct NewGroupEditorView: View {
     let groups: [TaskGroup]
     let onCreate: (String) -> Bool
@@ -200,6 +215,11 @@ private struct NewGroupEditorView: View {
                 if let saveError { Section { Text(saveError).foregroundStyle(.red) } }
             }
             .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if isNameFocused {
+                    KeyboardDismissBar { isNameFocused = false }
+                }
+            }
             .navigationTitle("New group")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -211,12 +231,6 @@ private struct NewGroupEditorView: View {
                     }
                     .disabled(trimmedName.isEmpty || isDuplicate)
                     .accessibilityIdentifier("group.create")
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    if isNameFocused {
-                        Spacer()
-                        KeyboardDismissButton { isNameFocused = false }
-                    }
                 }
             }
             .task { isNameFocused = true }

@@ -192,6 +192,32 @@ final class TaskProgressUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["task.progressLabel"].label, startingLabel)
     }
 
+    func testLabelKeyboardDismissalKeepsDraftAndValidation() {
+        enableProgress()
+        editLabels()
+        app.buttons["progress.addLabel"].tap()
+        XCTAssertTrue(app.navigationBars["New label"].waitForExistence(timeout: 3))
+        let field = labelField()
+        let save = app.buttons["progress.saveLabel"]
+        XCTAssertFalse(save.isEnabled)
+        field.tap()
+        field.typeText("To do")
+        XCTAssertFalse(save.isEnabled)
+        XCTAssertTrue(app.staticTexts["A label with this name already exists."].exists)
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 5) + "Waiting")
+        XCTAssertTrue(save.isEnabled)
+        screenshot("Progress label with keyboard dismiss control")
+        app.buttons["keyboard.dismiss"].tap()
+        let hidden = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: app.keyboards.firstMatch)
+        XCTAssertEqual(XCTWaiter.wait(for: [hidden], timeout: 3), .completed)
+        XCTAssertEqual(field.value as? String, "Waiting")
+        XCTAssertTrue(save.isEnabled)
+        app.navigationBars["New label"].buttons["Cancel"].tap()
+        XCTAssertTrue(app.navigationBars["Progress labels"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["Edit Waiting"].exists)
+        XCTAssertFalse(app.buttons["progress.saveLabels"].isEnabled)
+    }
+
     func testProgressLabelsAndSliderRemainReadableInLightAccessibilityLayout() {
         app.terminate()
         app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"]
