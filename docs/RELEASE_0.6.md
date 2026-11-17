@@ -10,9 +10,9 @@ The 0.6 series is in development. This document records the local usability and 
 
 ## 0.6.0 — Task usability and optional progress
 
-November 14–16, 2026 · Local candidate · Version 0.6.0, build 11
+November 14–16, 2026 · Local candidate · Version 0.6.0, build 12
 
-The initial usability checkpoint below describes build 10. The later progress checkpoint describes the current build 11.
+The initial usability checkpoint describes build 10, the progress checkpoint describes build 11, and the keyboard/header follow-up describes the current build 12.
 
 ### Initial usability checkpoint — build 10
 
@@ -22,7 +22,7 @@ Real-user testing found that tapping task text could accidentally complete a pla
 
 Empty Active content is one full-area Add task button for touch and assistive technologies. It shows “No plans yet” and a short tap instruction, without an illustration or an additional Add button. The Active heading and its circular Add button also start creation. Floating navigation remains usable. Completing the final active task restores the large heading and expanded navigation.
 
-Title's Done key dismisses the keyboard without saving. A labelled keyboard-down toolbar control is available while editing the title or multiline description. Descriptions retain Return for newlines; scrolling can dismiss the keyboard interactively.
+Title's Done key dismisses the keyboard without saving. A labelled keyboard-down control is available while editing the title or multiline description. Descriptions retain Return for newlines; scrolling can dismiss the keyboard interactively.
 
 The Group selector includes **New group**, opening a small form with Cancel and Create. Empty or duplicate names cannot be created. A successful save selects the new group; cancellation retains the previous selection. Group saves remain immediate, so cancelling the task afterwards does not remove a created group. A failed group save leaves the form open with feedback.
 
@@ -125,3 +125,33 @@ Focused commits separately cover the model, Settings, feedback, task controls, r
 7. Archive/restore/delete a disposable task and verify the status message clears. Verify both appearances, Reduce Motion/Transparency, haptic preference, real reminder delivery, and Low Power Mode off/on on the same phone/data.
 
 Keep all work local until owner testing. This batch does not remove Completed or define subgroup-derived numeric completion.
+
+
+<a id="v0-6-0-keyboard-polish"></a>
+
+### Keyboard and header follow-up — build 12
+
+November 16, 2026 · Local-only; no push or PR
+
+Opening progress-label forms produced **Invalid frame dimension (negative or non-finite)**. A captured and symbolicated runtime backtrace identified SwiftUI's `InputAccessoryBar` sizing. The keyboard-down control now sits in a shared form footer above the keyboard, avoiding that accessory path while preserving its 44-point target, accessibility label, standard keyboard suggestions, and dismissal without saving. Task and New group forms use the same control. Label names retain multiline layout and existing empty/duplicate validation, Save, and Cancel behavior.
+
+The floating navigation's selection geometry also handles transient zero, negative, and non-finite width proposals. Ordinary tab dimensions and selection offsets remain unchanged. The compact Settings title uses its page background, removing the distinct gray material strip while retaining the large-to-compact transition and soft scroll edge.
+
+The owner's iPhone also logged **The variant selector cell index number could not be found** while typing with the standard keyboard. The exact message is present in Apple's `TextInputUI` framework on the connected iPhone Air/iOS 26.6.1. It has not been reproduced in simulator logging; this is a separate device diagnostic, not a confirmed fix. Keep keyboard suggestions enabled and retest on the phone. No console filtering or private keyboard API is added.
+
+
+#### Follow-up validation
+
+| Check | Result | Local evidence |
+| --- | --- | --- |
+| Full unit suite, iOS 26.5 | 69 passed, including two new navigation geometry regressions | `/tmp/planning-label-frame-unit.xcresult` |
+| Navigation unit suite, iOS 17.2 | 16 passed | `/tmp/planning-label-frame-ios17-unit.xcresult` |
+| Label, group, and task keyboard scenarios, iOS 26.5 | Three passed | `/tmp/planning-keyboard-footer.xcresult` |
+| Header/tab, label validation/dismissal, and large-text scenarios, iOS 26.5 | Four passed | `/tmp/planning-label-fixes-current.xcresult` |
+| Same affected keyboard/header/label scenarios, narrow iOS 17.2 | Six passed | `/tmp/planning-label-fixes-ios17.xcresult` |
+| Device-SDK Release build, signing disabled | Passed | `/tmp/planning-label-fixes-release.log` |
+| Identical label-editor flow with live runtime logging | Four frame faults before; zero after the footer change | `/tmp/planning-label-warning-comparison.json` |
+
+The new label test covers empty/duplicate validation, preserving text after keyboard dismissal, and cancelling without changing the parent draft. Visual inspection covered compact Settings headers in light/dark at accessibility text size, the keyboard footer on narrow iOS 17, and the light New group form on current iOS. Review confirmed no task-store, persistence, notification, drag-cache, or progress-order changes. The geometry tests fail with the previous unguarded calculation and preserve normal tab dimensions after the fix.
+
+Phone retest: open Add label and type with the standard keyboard, dismiss/reopen input, save a custom label, and cancel another draft. Recheck task/group input and scroll Settings in both appearances. The simulator evidence resolves the reproduced frame warning; the separate variant-selector message still needs confirmation on the owner's iOS 26.6.1 device.
