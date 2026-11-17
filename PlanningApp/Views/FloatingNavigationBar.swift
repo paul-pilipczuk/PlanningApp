@@ -12,6 +12,7 @@ struct FloatingNavigationBar: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let layout = FloatingNavigationLayout(containerWidth: proxy.size.width)
             ZStack(alignment: .leading) {
                 if isCollapsed {
                     Button(action: onExpand) {
@@ -27,20 +28,18 @@ struct FloatingNavigationBar: View {
                     .accessibilityIdentifier("navigation.expand")
                     .transition(.opacity)
                 } else {
-                    HStack(spacing: 2) {
+                    HStack(spacing: FloatingNavigationLayout.spacing) {
                         ForEach(PlanningTab.allCases) { tab in
                             tabButton(tab)
                         }
                     }
-                    .padding(6)
-                    .frame(width: proxy.size.width, height: 72)
+                    .padding(FloatingNavigationLayout.padding)
+                    .frame(width: layout.containerWidth, height: 72)
                     .background(alignment: .leading) {
-                        let tabWidth = (proxy.size.width - 18) / 4
-                        let index = PlanningTab.allCases.firstIndex(of: selectedTab) ?? 0
                         Capsule()
                             .fill(Color.primary.opacity(0.10))
-                            .frame(width: tabWidth, height: 60)
-                            .offset(x: 6 + CGFloat(index) * (tabWidth + 2))
+                            .frame(width: layout.selectionWidth, height: 60)
+                            .offset(x: layout.selectionOffset(for: selectedTab))
                             .animation(reduceMotion ? nil : .smooth(duration: 0.28), value: selectedTab)
                             .allowsHitTesting(false)
                             .accessibilityHidden(true)
@@ -48,7 +47,7 @@ struct FloatingNavigationBar: View {
                     .transition(.opacity)
                 }
             }
-            .frame(width: isCollapsed ? 60 : proxy.size.width, height: isCollapsed ? 60 : 72)
+            .frame(width: isCollapsed ? 60 : layout.containerWidth, height: isCollapsed ? 60 : 72)
             .modifier(FloatingControlSurface(opaque: reduceTransparency))
             .shadow(color: .black.opacity(0.18), radius: 16, y: 6)
             .frame(maxHeight: .infinity, alignment: .bottom)

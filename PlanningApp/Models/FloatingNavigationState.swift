@@ -16,6 +16,29 @@ enum PlanningTab: String, CaseIterable, Identifiable {
     }
 }
 
+/// Geometry used by the floating bar, including transient presentation proposals.
+struct FloatingNavigationLayout {
+    static let padding: CGFloat = 6
+    static let spacing: CGFloat = 2
+    let containerWidth: CGFloat
+
+    init(containerWidth: CGFloat) {
+        // Sheet presentation can briefly propose zero or otherwise unusable geometry.
+        self.containerWidth = containerWidth.isFinite ? max(0, containerWidth) : 0
+    }
+
+    var selectionWidth: CGFloat {
+        let availableWidth = containerWidth - Self.padding * 2 - Self.spacing * CGFloat(PlanningTab.allCases.count - 1)
+        return max(0, availableWidth) / CGFloat(PlanningTab.allCases.count)
+    }
+
+    func selectionOffset(for tab: PlanningTab) -> CGFloat {
+        let index = PlanningTab.allCases.firstIndex(of: tab) ?? 0
+        let offset = Self.padding + CGFloat(index) * (selectionWidth + Self.spacing)
+        return min(offset, max(0, containerWidth - selectionWidth))
+    }
+}
+
 /// Tracks actual content movement, independently of how the scroll view reports it.
 struct FloatingNavigationState {
     private(set) var isCollapsed = false
