@@ -13,7 +13,7 @@ Keep Planning lightweight and responsive as features and saved data grow, includ
 - Measure the relevant path before/after with the same fixture/configuration. Separate cold and repeated-read behavior; do not equate simulator timings with phone FPS or battery improvements.
 - Test on a smaller supported layout and document physical-device checks with Low Power Mode both off and on. Do not assume Low Power Mode explains lag without evidence.
 
-Use focused commits within a release branch. For the authorized release workflow, branch from freshly pulled main, review the full diff and behavioral regressions, then squash-merge the versioned PR and delete its source branch. Honor any owner request to test locally before pushing.
+Use focused commits within a release branch. Follow Conventional Commits: `type(scope): short imperative description`, such as `fix(ui): restore compact headers`; see README.md for examples. For the authorized release workflow, branch from freshly pulled main, review the full diff and behavioral regressions, then squash-merge the versioned PR and delete its source branch. Honor any owner request to test locally before pushing.
 
 Keep unrelated local Xcode user-state changes out of release commits.
 

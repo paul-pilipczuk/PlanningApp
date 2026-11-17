@@ -175,13 +175,13 @@ The code intentionally leaves room for exploration rather than hiding everything
 
 The repository keeps source code, the Xcode project, shared schemes, and project documentation. It intentionally ignores `InternalDocs/`, local Xcode user data, and build artifacts.
 
-Use small, imperative commit messages that describe one change:
+Use Conventional Commits in the form `type(scope): short imperative description`. Keep each commit focused on one change:
 
 ```text
-Initial SwiftUI planning app
-Add task deletion flow
-Improve VoiceOver task actions
-Schedule weekly task reminders
+feat(app): create initial SwiftUI planning app
+feat(tasks): add task deletion flow
+fix(a11y): improve VoiceOver task actions
+feat(reminders): add weekly task reminders
 ```
 
 For feature work, start from an up-to-date default branch and use a focused branch:

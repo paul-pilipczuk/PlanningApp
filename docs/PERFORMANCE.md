@@ -79,7 +79,7 @@ The 23-test suite (18 unit tests and five UI tests) passed on iPhone 17 Pro / iO
 
 Progress preserves lazy rendering and adds cached stable partitions within each task group. Progress rows and section headers share one identity domain so a task can move between labels without destroying its active drag gesture. Group/label candidates, marker lookups, and marker positions are bounded to current data and discarded with the presentation caches. A section drop compares its destination and marker directly rather than comparing the full task array during drag updates. Configuration saves and final order saves retain the atomic snapshot contract.
 
-The fixed 10,000-task Release fixture and the original two benchmark methods are unchanged. An isolated checkout of `327e63c` supplied the prior build; both versions used the same iPhone 17 Pro/iOS 26.5 destination, Xcode 26.6, sequential execution, and `ENABLE_TESTABILITY=YES`. Two added methods apply the same workload with progress enabled and alternating assignments across the two labels. Each result averages five iterations.
+The fixed 10,000-task Release fixture and the original two benchmark methods are unchanged. An isolated checkout of `34b6db2` supplied the prior build; both versions used the same iPhone 17 Pro/iOS 26.5 destination, Xcode 26.6, sequential execution, and `ENABLE_TESTABILITY=YES`. Two added methods apply the same workload with progress enabled and alternating assignments across the two labels. Each result averages five iterations.
 
 | Store collection work | Prior build | Progress off | Progress on |
 | --- | --- | --- | --- |
