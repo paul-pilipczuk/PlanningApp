@@ -33,6 +33,23 @@ final class TaskUsabilityUITests: XCTestCase {
         assertDisappears(app.keyboards.firstMatch)
     }
 
+    private func dismissKeyboardByDraggingForm() {
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["keyboard.dismiss"].exists)
+        let form = app.collectionViews.firstMatch
+        // The collection's accessibility frame extends behind the keyboard.
+        // Begin on visible form content, above its keyboard-dismiss footer.
+        let visibleBottom = min(form.frame.maxY, app.buttons["keyboard.dismiss"].frame.minY)
+        let startY = max(form.frame.minY + 30, visibleBottom - 60)
+        let origin = app.coordinate(withNormalizedOffset: .zero)
+        let x = form.frame.minX + 8 - app.frame.minX
+        let start = origin.withOffset(CGVector(dx: x, dy: startY - app.frame.minY))
+        let end = origin.withOffset(CGVector(dx: x, dy: app.frame.height * 0.95))
+        start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0.3)
+        assertDisappears(app.keyboards.firstMatch)
+        assertDisappears(app.buttons["keyboard.dismiss"])
+    }
+
     func testTaskTextOpensDetailsAndOnlyCircleChangesCompletion() {
         let title = "Plan the week"
         app.buttons["Task details: \(title)"].tap()
@@ -109,6 +126,50 @@ final class TaskUsabilityUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["New Task"].exists)
         app.buttons["Cancel"].tap()
         XCTAssertTrue(app.buttons["task.emptyActive"].waitForExistence(timeout: 3))
+    }
+
+    func testInteractiveKeyboardDismissalKeepsTaskDraftWithoutSaving() {
+        launchEmptyActive()
+        app.buttons["task.add"].tap()
+        XCTAssertTrue(app.navigationBars["New Task"].waitForExistence(timeout: 3))
+        let title = app.textFields["task.title"]
+        title.tap()
+        title.typeText("Unsubmitted task draft")
+        dismissKeyboardByDraggingForm()
+        XCTAssertEqual(title.value as? String, "Unsubmitted task draft")
+        XCTAssertTrue(app.navigationBars["New Task"].exists)
+
+        let description = app.textViews["task.description"]
+        for _ in 0..<3 where !description.isHittable { app.collectionViews.firstMatch.swipeUp() }
+        description.tap()
+        description.typeText("First line\nSecond line")
+        dismissKeyboardByDraggingForm()
+        XCTAssertEqual(description.value as? String, "First line\nSecond line")
+        XCTAssertTrue(app.navigationBars["New Task"].exists)
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.buttons["task.emptyActive"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["Complete Unsubmitted task draft"].exists)
+    }
+
+    func testInteractiveKeyboardDismissalKeepsNewGroupDraftWithoutCreatingIt() {
+        launchEmptyActive()
+        openNewTask(title: "Draft with group")
+        let picker = app.buttons["task.group"]
+        picker.tap()
+        app.buttons["New group"].tap()
+        XCTAssertTrue(app.navigationBars["New group"].waitForExistence(timeout: 3))
+        let name = app.textFields["group.name"]
+        name.tap()
+        name.typeText("Unsubmitted group")
+        dismissKeyboardByDraggingForm()
+        XCTAssertEqual(name.value as? String, "Unsubmitted group")
+        XCTAssertTrue(app.buttons["group.create"].isEnabled)
+        app.navigationBars["New group"].buttons["Cancel"].tap()
+        XCTAssertTrue(app.navigationBars["New Task"].waitForExistence(timeout: 3))
+        XCTAssertFalse((picker.label + " " + String(describing: picker.value)).contains("Unsubmitted group"))
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.buttons["task.emptyActive"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["Complete Draft with group"].exists)
     }
 
     func testGroupSelectorCreatesSelectsAndCancelsNewGroups() {
