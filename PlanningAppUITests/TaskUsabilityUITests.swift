@@ -44,7 +44,9 @@ final class TaskUsabilityUITests: XCTestCase {
         let origin = app.coordinate(withNormalizedOffset: .zero)
         let x = form.frame.minX + 8 - app.frame.minX
         let start = origin.withOffset(CGVector(dx: x, dy: startY - app.frame.minY))
-        let end = origin.withOffset(CGVector(dx: x, dy: app.frame.height * 0.95))
+        // Stop within the keyboard so the gesture does not become a full-sheet dismissal.
+        let endY = min(app.frame.height * 0.95, app.keyboards.firstMatch.frame.midY - app.frame.minY)
+        let end = origin.withOffset(CGVector(dx: x, dy: endY))
         start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0.3)
         assertDisappears(app.keyboards.firstMatch)
         assertDisappears(app.buttons["keyboard.dismiss"])
