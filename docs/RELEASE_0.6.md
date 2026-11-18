@@ -10,9 +10,9 @@ The 0.6 series improves task usability and introduces optional task progress. Th
 
 ## 0.6.0 — Task usability and optional progress
 
-November 17, 2026 · Version 0.6.0, build 13 · [PR #9](https://github.com/paul-pilipczuk/PlanningApp/pull/9)
+November 17, 2026 · Version 0.6.0, build 14 · [PR #9](https://github.com/paul-pilipczuk/PlanningApp/pull/9)
 
-The initial usability checkpoint describes build 10, the progress checkpoint describes build 11, the keyboard/header follow-up describes build 12, and the adversarial-review follow-up describes build 13. Earlier local-only checkpoints retain their original context; the owner subsequently authorized push, review, and squash merge.
+The initial usability checkpoint describes build 10, the progress checkpoint describes build 11, the keyboard/header follow-up describes build 12, the adversarial-review follow-up describes build 13, and the final pushed-head correction describes build 14. Earlier local-only checkpoints retain their original context; the owner subsequently authorized push, review, and squash merge.
 
 ### Initial usability checkpoint — build 10
 
@@ -177,7 +177,7 @@ New regressions cover reminder idempotency and pending work, orphan-target inser
 All 19 original local checkpoints were reworded to Conventional Commits with identical code trees and preserved authorship. README/agent guidance and benchmark references were updated to match. Further review fixes use focused Conventional Commits; the versioned PR is squash-merged with a conventional subject and its source branch removed.
 
 
-#### Final review validation
+#### Build 13 review validation
 
 Xcode 26.6 (17F113), iOS 26.5 SDK, iOS 17 deployment baseline; November 17, 2026.
 
@@ -201,3 +201,35 @@ Release collection benchmarks, persistence rollback, corruption protection, cach
 - Start a drag, interrupt it with an app/scene change, return, and verify the task is visible with saved order and no accidental destination or details sheet. Store rollback and successful-drop regressions are automated; actual system-interruption feel still needs phone validation.
 - Verify VoiceOver focus/actions, haptics, real reminder permission/delivery, and low-power interaction smoothness on the same phone/data.
 - Retest the separate per-character TextInputUI variant-selector diagnostic on the owner's standard keyboard. It is documented, not claimed fixed by simulator tests.
+
+
+<a id="v0-6-0-pushed-review"></a>
+
+### Pushed-head correction — build 14
+
+November 17, 2026
+
+The requested post-push subagent review checked exact PR head `60169182083ccc970da2c16607dfee3e4253d014`. Both the store and drag reviewers found an additional uncovered P2 path, recorded in [the PR review](https://github.com/paul-pilipczuk/PlanningApp/pull/9#pullrequestreview-5948976616): two tasks sharing a missing raw group reference and a progress label could lose the held drag's source after a same-lane downward reorder. The earlier passing suites did not exercise continuing that drag into another label.
+
+Same-lane end reordering now finds the last task in the source's current displayed label and retains the source's raw group and stored progress fields. It neither normalizes an orphan reference during the held gesture nor jumps an already-last task into a later label. The shared drag path uses this operation; explicit group/label transfers still apply together on release. Disabled-mode raw-group ordering is unchanged.
+
+Two new store regressions fail against the previous implementation. A new UI case also fails before the fix: it slowly drags the first orphan task past its same-group peer and continues to In progress before releasing. The correction passes the store regressions and the continued-drag case on current iOS. A remaining narrow iOS 17 simulator continuation failure is tracked below rather than claimed fixed. The memory-only Debug fixture adds `-orphaned-pair` for this path.
+
+Build 13's full 38-scenario UI evidence is retained above. Build 14 repeats the complete unit suites and affected default/progress/orphan drag and slider scenarios on both platform generations; it does not claim a new full 39-scenario UI run or physical interruption testing.
+
+
+#### Build 14 validation and known follow-up
+
+| Check | Result | Local evidence |
+| --- | --- | --- |
+| Full current-iOS unit suite, Release | 78 passed | `/tmp/planning-060-final-release-unit.xcresult` |
+| Full iOS 17.2 unit suite | 78 passed | `/tmp/planning-060-final-ios17-unit.xcresult` |
+| Current-iOS affected drag/slider scenarios | Six passed | `/tmp/planning-060-final-drag-ui.xcresult` |
+| Final continued-drag case, current iOS | Passed | `/tmp/planning-060-pair-release-current.xcresult` |
+| Narrow iOS 17.2 affected scenarios | Five ordinary passes; scoped expected failure retained, with details-slider fallback passing | `/tmp/planning-060-final-narrow-drag-ui.xcresult`, `/tmp/planning-060-pair-fallback-verified.xcresult` |
+| Final device-SDK Release build, signing disabled | Passed | `/tmp/planning-060-final-device-release.log` |
+| New store and continued-drag regressions before the fix | Fail as expected | `/tmp/planning-060-orphan-lane-red.xcresult`, `/tmp/planning-060-orphan-pair-ui-red.xcresult` |
+
+**Known follow-up: narrow iOS 17 simulator orphan-pair continuation.** On the tested iPhone SE/iOS 17.2 layout, continuing a held drag between tasks with missing saved group references still does not apply the next progress label. The tasks remain intact. This is a narrow legacy-reference interaction, not a general task-editing or persistence failure. The owner reported successful phone testing and readiness to use follow-up patches; this remaining edge is retained for a 0.6.x patch rather than represented as resolved.
+
+The regression uses a strict `XCTExpectFailure` around only the failed progress-application assertion, limited to iOS 17 at the tested 375×667 layout. Earlier geometry and task checks remain ordinary assertions. An unexpected pass requires removing the known-failure exception, following [XCTest's expected-failure mechanism](https://developer.apple.com/documentation/xctest/expected-failures). The details-slider alternative is verified in the same test: both tasks remain present, opening details shows the unchanged label, and moving the slider then saving applies In progress successfully. The original failing bundles and recording are retained; no console filtering or speculative state workaround remains in app code.

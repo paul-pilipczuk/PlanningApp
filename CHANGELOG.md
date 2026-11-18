@@ -22,6 +22,7 @@ All notable user-facing changes to this project are documented here.
 - Blend the compact Settings title into its page background.
 - Preserve existing reminders during progress, group, and description edits; keep legacy unknown progress references editable.
 - Resolve General drop targets consistently for saved tasks with missing groups and discard interrupted drag previews safely.
+- Retain the held drag source during same-subgroup reordering, including tasks with missing saved references.
 - Keep arbitrary nested subgroups and subgroup-derived numeric progress for future work.
 
 ## [0.5.5] - 2026-11-13

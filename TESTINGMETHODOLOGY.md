@@ -156,3 +156,9 @@ Use the memory-only Debug fixture `-sample-data -progress-data -orphaned-data` f
 Reminder metadata edits must neither reschedule an existing one-shot request nor invalidate work already queued. Keep positive checks for actual title/schedule changes and disabling. The isolated unchanged pre-fix checkout supplies failing behavioral evidence; integration compile failures are not counted as exercised app bugs.
 
 For interactive keyboard checks, derive the start from visible form content above the keyboard footer; collection accessibility bounds can extend behind the keyboard. End inside the keyboard instead of performing a full-sheet dismissal. Assert keyboard and footer disappearance, preserved text, and an unsaved draft. Repeat on narrow iOS 17 and the current SDK. Actual interrupted-touch delivery, VoiceOver focus, notification delivery, and device-only keyboard diagnostics remain phone checks; do not substitute successful simulator runs for those observations.
+
+
+The post-push review adds `-orphaned-pair` to the orphan fixture: both active tasks share a missing raw group and the starting displayed label. Drag slowly through the peer to the next subgroup before release. This catches losing the raw-group lookup during an intermediate reorder, which a simple final-position check misses. Unit cases retain the complete stored task fields and prevent moving an already-last item into another label.
+
+
+The narrow iOS17/375×667 continued orphan-pair drag currently has one documented strict expected failure, limited to its progress-application assertion. Other assertions and platforms remain normal checks; an unexpected pass flags removal of the exception. Do not count this as a fixed interaction or silently skip it. Retain failing artifacts and verify the details-slider alternative while tracking the patch follow-up.
