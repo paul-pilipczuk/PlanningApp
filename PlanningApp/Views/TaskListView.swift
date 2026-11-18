@@ -9,6 +9,7 @@ struct TaskListView: View {
     @EnvironmentObject private var taskStore: TaskStore
     @EnvironmentObject private var preferences: AppPreferences
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     @State private var taskToEdit: TaskItem?
     @State private var taskPendingDeletion: TaskItem?
     @State private var editorDeletion: TaskItem?
@@ -41,10 +42,15 @@ struct TaskListView: View {
         .onPreferenceChange(ProgressFramePreferenceKey.self) { taskFrames.replaceProgressFrames($0) }
         .sensoryFeedback(.selection, trigger: reorderFeedback) { _, _ in preferences.hapticFeedback }
         .onChange(of: tab) { _, _ in
-            endDragging()
+            cancelDragging()
             taskShowingDeleteID = nil
             taskFrames.rows = [:]
+            taskFrames.dropZones = []
         }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { cancelDragging() }
+        }
+        .onDisappear(perform: cancelDragging)
         .sheet(isPresented: $isAddingTask) { editor(task: nil) }
         .sheet(item: $taskToEdit, onDismiss: {
             if let task = editorDeletion {
@@ -219,7 +225,7 @@ struct TaskListView: View {
                     beginDragging(task)
                     dragTranslation = drag.translation
                     updateTaskOrder(for: drag.location)
-                }, onDragEnded: { _ in endDragging() })
+                }, onDragEnded: { _ in endDragging() }, onDragCancelled: cancelDragging)
             .background {
                 if tab == .active { taskFrameReader(for: task) }
             }
@@ -231,14 +237,15 @@ struct TaskListView: View {
     private func taskFrameReader(for task: TaskItem) -> some View {
         GeometryReader { proxy in
             Color.clear.preference(key: TaskFramePreferenceKey.self,
-                value: [task.id: TaskRowGeometry(frame: proxy.frame(in: .named("taskList")), groupID: task.groupID,
+                value: [task.id: TaskRowGeometry(frame: proxy.frame(in: .named("taskList")), groupID: taskStore.displayGroupID(for: task),
+                    storedGroupID: task.groupID,
                     markerID: taskStore.progressConfiguration.isEnabled ? taskStore.progressMarker(for: task).id : nil)])
         }
     }
 
     @ViewBuilder private var dragPreview: some View {
         if let draggedTaskID, let task = taskStore.activeTasks(in: dragGroupID).first(where: { $0.id == draggedTaskID }), let dragPreviewFrame {
-            TaskRow(task: previewTask(task), isDeleteVisible: false, onComplete: {}, onTaskTap: {}, onLongPress: {}, onConfigure: {}, onCopy: nil, onArchive: nil, onDelete: {}, onDragChanged: { _ in }, onDragEnded: { _ in })
+            TaskRow(task: previewTask(task), isDeleteVisible: false, onComplete: {}, onTaskTap: {}, onLongPress: {}, onConfigure: {}, onCopy: nil, onArchive: nil, onDelete: {}, onDragChanged: { _ in }, onDragEnded: { _ in }, onDragCancelled: {})
                 .frame(width: dragPreviewFrame.width).scaleEffect(1.035).shadow(color: .black.opacity(0.45), radius: 14, y: 8)
                 .offset(x: dragPreviewFrame.minX, y: dragPreviewFrame.minY + dragTranslation.height).allowsHitTesting(false).accessibilityHidden(true)
         }
@@ -271,21 +278,21 @@ struct TaskListView: View {
             let markerID = target.markerID ?? currentMarker
             if let pendingDrop, pendingDrop.groupID == target.groupID, pendingDrop.markerID == markerID,
                pendingDrop.isGroupHeading == (target.markerID == nil), pendingDrop.anchorRowID == nil { return }
-            let destination = taskStore.activeTasks(in: target.groupID, progressMarkerID: markerID).first { $0.id != draggedTaskID }
+            let destination = taskStore.displayedActiveTasks(in: target.groupID, progressMarkerID: markerID).first { $0.id != draggedTaskID }
             setPendingDrop(PendingTaskDrop(groupID: target.groupID, markerID: markerID, beforeID: destination?.id,
                                            isGroupHeading: target.markerID == nil))
             return
         }
         if let target = taskFrames.rows.first(where: { $0.key != draggedTaskID && $0.value.frame.contains(location) }),
-           target.value.groupID != current.groupID || target.value.markerID != currentMarker {
+           target.value.groupID != taskStore.displayGroupID(for: current) || target.value.storedGroupID != current.groupID || target.value.markerID != currentMarker {
             let placeAfter = location.y > target.value.frame.midY
             if let pendingDrop, pendingDrop.groupID == target.value.groupID, pendingDrop.markerID == target.value.markerID,
                pendingDrop.anchorRowID == target.key, pendingDrop.placeAfter == placeAfter { return }
             var beforeID: UUID? = target.key
             if placeAfter {
-                let lane = taskStore.activeTasks(in: target.value.groupID, progressMarkerID: target.value.markerID)
+                let lane = taskStore.displayedActiveTasks(in: target.value.groupID, progressMarkerID: target.value.markerID)
                 if let index = lane.firstIndex(where: { $0.id == target.key }) {
-                    beforeID = index + 1 < lane.count ? lane[index + 1].id : nil
+                    beforeID = lane.dropFirst(index + 1).first { $0.id != draggedTaskID }?.id
                 }
             }
             setPendingDrop(PendingTaskDrop(groupID: target.value.groupID, markerID: target.value.markerID,
@@ -341,6 +348,17 @@ struct TaskListView: View {
             hasPendingReorder = hasPendingReorder || moved
         }
         if hasPendingReorder { taskStore.persistTaskOrder() }
+        clearDragging()
+    }
+
+    private func cancelDragging() {
+        guard draggedTaskID != nil || hasPendingReorder || pendingDrop != nil else { return }
+        // A cancelled gesture never applies its pending group/progress destination.
+        if hasPendingReorder { taskStore.cancelTaskOrderChanges() }
+        clearDragging()
+    }
+
+    private func clearDragging() {
         withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { draggedTaskID = nil; dragGroupID = nil; pendingDrop = nil; dragPreviewFrame = nil; dragTranslation = .zero }
         hasPendingReorder = false
     }
@@ -390,6 +408,7 @@ private struct PendingTaskDrop: Equatable {
 private struct TaskRowGeometry: Equatable {
     let frame: CGRect
     let groupID: UUID?
+    let storedGroupID: UUID?
     let markerID: UUID?
 }
 
@@ -419,7 +438,10 @@ private struct TaskRow: View {
     let onDelete: () -> Void
     let onDragChanged: (DragGesture.Value) -> Void
     let onDragEnded: (DragGesture.Value) -> Void
+    let onDragCancelled: () -> Void
     @EnvironmentObject private var taskStore: TaskStore
+    @Environment(\.scenePhase) private var scenePhase
+    @GestureState private var isTouchActive = false
     @State private var touchBeganAt: Date?
     @State private var isReordering = false
 
@@ -477,6 +499,13 @@ private struct TaskRow: View {
         }
         .padding(14)
         .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+        .onChange(of: isTouchActive) { _, isActive in
+            if !isActive { cancelInteraction() }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { cancelInteraction() }
+        }
+        .onDisappear(perform: cancelInteraction)
     }
 
     @ViewBuilder
@@ -487,7 +516,10 @@ private struct TaskRow: View {
                 .onLongPressGesture(perform: onLongPress)
         } else {
             taskContent
-                .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .named("taskList")).onChanged { value in
+                .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .named("taskList"))
+                .updating($isTouchActive) { _, isActive, _ in isActive = true }
+                .onChanged { value in
+                    guard scenePhase == .active else { cancelInteraction(); return }
                     if touchBeganAt == nil { touchBeganAt = Date() }
                     let translation = value.translation
                     let isVerticalMove = abs(translation.height) > abs(translation.width)
@@ -495,20 +527,32 @@ private struct TaskRow: View {
                     isReordering = true
                     onDragChanged(value)
                 }.onEnded { value in
-                    defer {
-                        touchBeganAt = nil
-                        isReordering = false
+                    guard scenePhase == .active, let beganAt = touchBeganAt else {
+                        cancelInteraction()
+                        return
                     }
-                    if isReordering {
+                    let wasReordering = isReordering
+                    let duration = Date().timeIntervalSince(beganAt)
+                    touchBeganAt = nil
+                    isReordering = false
+                    // Clear local state before success can move/remove this row.
+                    if wasReordering {
                         onDragEnded(value)
                         return
                     }
                     let translation = value.translation
                     if abs(translation.width) > abs(translation.height), abs(translation.width) >= 45 { return }
-                    if Date().timeIntervalSince(touchBeganAt ?? Date()) >= 0.45 { onLongPress() }
+                    if duration >= 0.45 { onLongPress() }
                     else { onTaskTap() }
                 })
         }
+    }
+
+    private func cancelInteraction() {
+        let wasReordering = isReordering
+        touchBeganAt = nil
+        isReordering = false
+        if wasReordering { onDragCancelled() }
     }
 
     private var taskContent: some View {
