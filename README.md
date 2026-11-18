@@ -34,7 +34,7 @@ This does not claim to solve every accessibility need. It is a foundation intend
 
 When Active is empty, the whole content area opens a new task, as does the Active heading or its Add button. The empty state has a short instruction without an illustration or a duplicate Add button. Navigation remains available.
 
-In the task editor, Title’s **Done** key dismisses the keyboard without saving. The keyboard-down toolbar control also dismisses it while editing a multiline description. Choose **New group** inside the Group selector to create and select a group; cancelling that form preserves the previous selection. Groups are saved immediately, so cancelling the task does not remove a newly created group.
+In the task editor, Title’s **Done** key dismisses the keyboard without saving. The keyboard-down control above the keyboard also dismisses it while editing a multiline description. Choose **New group** inside the Group selector to create and select a group; cancelling that form preserves the previous selection. Groups are saved immediately, so cancelling the task does not remove a newly created group.
 
 The floating bottom bar has four destinations: **Active**, **Completed**, **Archived**, and **Settings**. Active shows grouped unfinished plans; Completed shows finished plans with a checkmark, strikethrough text, reduced emphasis, and an ellipsis menu for Edit, Copy, Archive, and Delete. Archived holds completed tasks you choose to keep, with saved details, restoration to Completed, Copy into a prefilled new task, and confirmed permanent deletion.
 
@@ -120,7 +120,7 @@ xcodebuild test -project PlanningApp.xcodeproj -scheme PlanningApp \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO
 ```
 
-Use a simulator name installed on your Mac. [The 0.6 release notes](docs/RELEASE_0.6.md#v0-6-0) record the current local candidate, validation evidence, and device checks. The larger 0.6.0 PR is deferred until the remaining scope is ready.
+Use a simulator name installed on your Mac. [The 0.6 release notes](docs/RELEASE_0.6.md#v0-6-0) record implemented behavior, validation evidence, and device checks.
 
 See [performance notes and the phone comparison steps](docs/PERFORMANCE.md) for the separate optimization follow-up.
 
@@ -184,15 +184,15 @@ fix(a11y): improve VoiceOver task actions
 feat(reminders): add weekly task reminders
 ```
 
-For feature work, start from an up-to-date default branch and use a focused branch:
+For release work, start from current main and name the branch `<version>-<short-description>`:
 
 ```bash
 git switch main
-git pull --ff-only
-git switch -c feature/task-deletion
+git pull --ff-only origin main
+git switch -c 0.6.0-task-usability
 ```
 
-Keep each branch centered on one user-facing improvement, verify it on a simulator or device, then commit the finished change.
+Keep focused commits throughout implementation. Use `<version>: <title>` for the PR title, review the full pushed diff and behavioral regressions, then squash-merge with a Conventional Commit subject and delete the source branch. Preserve owner-requested local testing holds and unrelated Xcode user state.
 
 ## Status
 

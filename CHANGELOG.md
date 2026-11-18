@@ -2,7 +2,7 @@
 
 All notable user-facing changes to this project are documented here.
 
-## [0.6.0] - Local candidate
+## [0.6.0] - 2026-11-17
 
 - Add optional task progress, disabled by default, with editable To do and In progress labels.
 - Add custom labels, native rename/remove/reorder editing, and stable ordering within every task group.
@@ -18,7 +18,11 @@ All notable user-facing changes to this project are documented here.
 - Dismiss the title keyboard with Done and provide a keyboard-down control for multiline input.
 - Move New group into the Group selector with a dedicated creation form.
 - Expose weekday and time together for weekly reminders.
-- Keep the larger 0.6.0 PR, nested subgroups, and subgroup-derived numeric progress pending.
+- Avoid invalid keyboard accessory frames while preserving the labelled keyboard-down control and standard suggestions.
+- Blend the compact Settings title into its page background.
+- Preserve existing reminders during progress, group, and description edits; keep legacy unknown progress references editable.
+- Resolve General drop targets consistently for saved tasks with missing groups and discard interrupted drag previews safely.
+- Keep arbitrary nested subgroups and subgroup-derived numeric progress for future work.
 
 ## [0.5.5] - 2026-11-13
 

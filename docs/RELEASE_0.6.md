@@ -1,6 +1,6 @@
 # Planning 0.6 — Task experience
 
-The 0.6 series is in development. This document records the local usability and optional task-progress candidate; it does not mark the larger release as shipped. Arbitrary nested subgroups and subgroup-derived numeric progress remain future scope.
+The 0.6 series improves task usability and introduces optional task progress. This document records the implemented behavior, release checkpoints, and validation. Arbitrary nested subgroups and subgroup-derived numeric progress remain future scope.
 
 ## Versions
 
@@ -10,9 +10,9 @@ The 0.6 series is in development. This document records the local usability and 
 
 ## 0.6.0 — Task usability and optional progress
 
-November 14–16, 2026 · Local candidate · Version 0.6.0, build 12
+November 17, 2026 · Version 0.6.0, build 13 · [PR #9](https://github.com/paul-pilipczuk/PlanningApp/pull/9)
 
-The initial usability checkpoint describes build 10, the progress checkpoint describes build 11, and the keyboard/header follow-up describes the current build 12.
+The initial usability checkpoint describes build 10, the progress checkpoint describes build 11, the keyboard/header follow-up describes build 12, and the adversarial-review follow-up describes build 13. Earlier local-only checkpoints retain their original context; the owner subsequently authorized push, review, and squash merge.
 
 ### Initial usability checkpoint — build 10
 
@@ -155,3 +155,49 @@ The owner's iPhone also logged **The variant selector cell index number could no
 The new label test covers empty/duplicate validation, preserving text after keyboard dismissal, and cancelling without changing the parent draft. Visual inspection covered compact Settings headers in light/dark at accessibility text size, the keyboard footer on narrow iOS 17, and the light New group form on current iOS. Review confirmed no task-store, persistence, notification, drag-cache, or progress-order changes. The geometry tests fail with the previous unguarded calculation and preserve normal tab dimensions after the fix.
 
 Phone retest: open Add label and type with the standard keyboard, dismiss/reopen input, save a custom label, and cancel another draft. Recheck task/group input and scroll Settings in both appearances. The simulator evidence resolves the reproduced frame warning; the separate variant-selector message still needs confirmation on the owner's iOS 26.6.1 device.
+
+
+<a id="v0-6-0-adversarial-review"></a>
+
+### Adversarial-review follow-up — build 13
+
+November 17, 2026 · [PR #9](https://github.com/paul-pilipczuk/PlanningApp/pull/9)
+
+The full release diff was reviewed for data loss, migration/corruption protection, reminder lifecycle, stale state, drag targets and cancellation, accessibility, and resource use. Three agent passes examined persistence/reminders, dragging/navigation, and editors/accessibility; the implementation author reviewed the resulting fixes. These are implementation reviews, not independent human approval.
+
+The review identified and fixed:
+
+- **Unrelated edits rescheduled reminders.** Saving only progress, group, or description could recreate a one-shot reminder. The store now reconciles only when the reminder schedule or notification title changes. Metadata edits also leave an already queued reminder operation valid. Completion/archive/delete still use their existing cancellation paths.
+- **Unknown progress references blocked editing.** Supported saved tasks displayed the starting label but submitted an unknown stored UUID, so Save silently failed. Enabled details now save the displayed fallback; disabled details preserve hidden metadata by leaving it untouched. Opening a fallback task does not count as a user edit.
+- **General row drops rejected orphan references.** Saved tasks whose groups are missing display in General, but their raw UUID could make a visible row target invalid. Displayed membership now drives explicit drop validation, positioning, and cached destination lookups. Existing same-raw-group reordering and unrelated saved references remain intact.
+- **Interrupted drags lacked cleanup.** Gesture cancellation, an inactive scene, or disappearing content now clears the lifted preview and restores transient order to the latest saved state without applying a pending transfer or writing a preview. Late inactive/cancelled callbacks cannot become task taps. SwiftUI's success-only end callback and automatic gesture-state reset are described in [Apple's gesture lifecycle guidance](https://developer.apple.com/documentation/swiftui/adding-interactivity-with-gestures).
+
+New regressions cover reminder idempotency and pending work, orphan-target insertion and General append order, displayed-cache freshness after moves/configuration/reload/purge, rollback without writes, retaining intervening saved edits, fallback editing with progress on/off, and actual keyboard dismissal without saving a draft. The corruption matrix also checked duplicate task/group/marker identities, unsupported versions, missing schema-4 configuration, empty labels, and folded duplicate label names; failed loads remain protected from writes.
+
+All 19 original local checkpoints were reworded to Conventional Commits with identical code trees and preserved authorship. README/agent guidance and benchmark references were updated to match. Further review fixes use focused Conventional Commits; the versioned PR is squash-merged with a conventional subject and its source branch removed.
+
+
+#### Final review validation
+
+Xcode 26.6 (17F113), iOS 26.5 SDK, iOS 17 deployment baseline; November 17, 2026.
+
+| Check | Result | Local evidence |
+| --- | --- | --- |
+| Full current-iOS unit suite, Release with testability enabled | 76 passed | `/tmp/planning-060-reviewed-release-unit.xcresult` |
+| Full iOS 17.2 unit suite | 76 passed | `/tmp/planning-060-reviewed-ios17-unit.xcresult` |
+| Full current-iOS UI suite | 38 passed | `/tmp/planning-060-reviewed-full-ui.xcresult` |
+| Final keyboard-only gesture checks, current iOS | Two passed | `/tmp/planning-060-keyboard-final-current.xcresult` |
+| Narrow iOS 17.2 affected UI | Eight initial passes; sole gesture-harness failure superseded by two passing keyboard follow-ups | `/tmp/planning-060-reviewed-narrow-ui.xcresult`, `/tmp/planning-060-narrow-keyboard-final.xcresult` |
+| Device-SDK Release build, signing disabled | Passed | `/tmp/planning-060-reviewed-device-release.log` |
+| Unchanged pre-fix checkout with new regressions | Reminder rescheduling and both General insertion/order regressions fail as expected; pending-work safeguard passes | `/tmp/planning-060-review-baseline-red.xcresult` |
+| Public local documentation links/anchors | 34 resolved | README, changelog, testing methodology, and minor-series documents |
+
+The narrow runs together cover all nine targeted scenarios. The first interactive-keyboard queries started inside the obscured area of the form's accessibility frame; a later long gesture also dismissed the native group sheet on iOS 17. The final gesture starts above the keyboard footer and ends within the keyboard, keeping strict checks for keyboard/footer dismissal, preserved draft text, and no save. Both corrected keyboard cases passed on both platforms. App source did not change for these query corrections.
+
+Release collection benchmarks, persistence rollback, corruption protection, cache freshness/purge, and neighboring archive/copy/completion/reminder flows remain in the passing suites. No physical-phone frame-rate, energy, or full accessibility audit is claimed. The PR records the final pushed-head review before its matching-head squash merge.
+
+#### Remaining phone checks
+
+- Start a drag, interrupt it with an app/scene change, return, and verify the task is visible with saved order and no accidental destination or details sheet. Store rollback and successful-drop regressions are automated; actual system-interruption feel still needs phone validation.
+- Verify VoiceOver focus/actions, haptics, real reminder permission/delivery, and low-power interaction smoothness on the same phone/data.
+- Retest the separate per-character TextInputUI variant-selector diagnostic on the owner's standard keyboard. It is documented, not claimed fixed by simulator tests.

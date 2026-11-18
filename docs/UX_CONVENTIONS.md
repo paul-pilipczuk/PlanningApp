@@ -30,3 +30,5 @@ Review narrow screens, both appearances, and accessibility text sizes. Keep at l
 - Success feedback is short, dismissible, and temporary, above stable navigation. It must not change header/list geometry or truncate task titles. Use concise messages without task titles; announce them for VoiceOver and give more reading time. Save errors remain visible and readable until dismissed or resolved.
 
 - Keep subgroup spacing compact with normal Dynamic Type styles. Noninteractive headings can be visually shorter; maintain at least 44-point vertical drop regions, 44-point empty targets, and 44-point task controls. Resolve overlapping expanded header regions by proximity rather than dictionary order.
+
+- A cancelled or interrupted drag discards its pending destination and transient order. Keep the task visible and retain the latest saved edits; a late cancelled callback must not open details or complete a task.
