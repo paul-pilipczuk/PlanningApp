@@ -52,7 +52,8 @@ Unit tests should avoid the real Application Support directory and real notifica
 Use UI tests for critical flows that involve SwiftUI presentation or gesture wiring:
 
 - Creating a task with a description and group.
-- Completing a task through the primary row tap.
+- Completing or reopening a task through its dedicated completion circle.
+- Opening Active/Completed details by tapping task text without changing status.
 - Opening task details through a stationary long press or cog button.
 - Revealing task deletion by swiping left and confirming deletion.
 - Switching between Active, Completed, Archived, and Settings.
@@ -133,3 +134,31 @@ Use the Debug-only `-sample-data -short-completed-data` fixture to verify the fi
 ## 0.5.5 performance and freshness
 
 [Performance guidance](docs/PERFORMANCE.md) records the identical before/after Release fixture, clock/CPU/memory metrics, cold versus warm results, and phone comparison. Warm every public projection before testing reorder, completion, archive/restore, updates, deletion, group creation, reload, and failed-save rollback. Verify memory-pressure purge preserves saved bytes and current outputs without publishing state; animation revision must ignore messages, groups, no-op saves, and purge. Repeat drag and lifecycle UI regressions on the supported iOS baseline. Simulator timings and small-device layout checks do not establish physical phone performance.
+
+## 0.6.0 initial usability batch
+
+[The 0.6 notes](docs/RELEASE_0.6.md#v0-6-0) describe the local candidate. UI scenarios separate completion from details on both task pages, exercise the empty Active canvas without intercepting navigation, dismiss the keyboard without saving, create/cancel groups inside the selector, and retain weekly weekday selection. Unit tests verify daily/weekly notification date components and weekly settings across save/reload without requesting permission or delivering notifications. Retain drag, Copy, archive/delete, scroll, and preference regression coverage. Verify narrow iOS 17 layouts as well as the current SDK. Actual VoiceOver focus, keyboard ergonomics, notification delivery, and phone performance remain physical-device checks.
+
+
+## 0.6.0 progress and feedback
+
+Progress tests cover default-off migration, stable ordering within named groups and General, missing references, custom renaming/removal/reordering, disable/re-enable, failed writes, drag rollback, reminder continuity, completion/archive/restore/copy, cache purge, and ordinal bar values. Use temporary JSON files and the injected notification scheduler. Keep the unchanged Release baseline fixture for comparisons and measure enabled-mode overhead separately.
+
+UI tests use `-sample-data -progress-data` for two active tasks and small completed/archive samples. They verify expanded Settings, label draft cancellation, native editing controls, replacement of both defaults, single-label configuration, stepped detail sliders, section dragging in both directions, cross-task-group drops onto empty groups and specific progress subgroups, and light appearance at accessibility text sizes. Global row identities must remain unique/stable across transfers; failed saves restore group, marker, and order together. Scroll lazy native lists to reveal controls; use stable row identifiers for native removal controls. Reorder checks prove a changed relative order, preserved assignments, and that the first saved label starts new tasks, without depending on native drag rounding at an exact row midpoint.
+
+Retain the full ordinary fixture for default-off navigation, copy/archive/delete, keyboard/group/reminder, and original drag regressions. Check that new tabs have a known zero scroll baseline before a potentially coalesced first scroll event. Success feedback must clear automatically while header/navigation frames stay fixed; errors retain their distinct persistent path. Actual VoiceOver focus/actions, haptics, saved-data upgrades on phone, and Low Power Mode interaction feel remain device checks.
+
+
+## 0.6.0 adversarial review regressions
+
+Use the memory-only Debug fixture `-sample-data -progress-data -orphaned-data` for supported tasks with missing group/progress references. Add `-progress-enabled` to start with progress on; omit it to verify ordinary edits preserve hidden metadata. Check fallback details Save, visible General row drops and marker changes, raw-group reorder compatibility, and stable identity. Store tests additionally verify displayed-lane invalidation on moves/configuration/reload/purge and cancellation without writes or loss of a later saved edit.
+
+Reminder metadata edits must neither reschedule an existing one-shot request nor invalidate work already queued. Keep positive checks for actual title/schedule changes and disabling. The isolated unchanged pre-fix checkout supplies failing behavioral evidence; integration compile failures are not counted as exercised app bugs.
+
+For interactive keyboard checks, derive the start from visible form content above the keyboard footer; collection accessibility bounds can extend behind the keyboard. End inside the keyboard instead of performing a full-sheet dismissal. Assert keyboard and footer disappearance, preserved text, and an unsaved draft. Repeat on narrow iOS 17 and the current SDK. Actual interrupted-touch delivery, VoiceOver focus, notification delivery, and device-only keyboard diagnostics remain phone checks; do not substitute successful simulator runs for those observations.
+
+
+The post-push review adds `-orphaned-pair` to the orphan fixture: both active tasks share a missing raw group and the starting displayed label. Drag slowly through the peer to the next subgroup before release. This catches losing the raw-group lookup during an intermediate reorder, which a simple final-position check misses. Unit cases retain the complete stored task fields and prevent moving an already-last item into another label.
+
+
+The narrow iOS17/375×667 continued orphan-pair drag currently has one documented strict expected failure, limited to its progress-application assertion. Other assertions and platforms remain normal checks; an unexpected pass flags removal of the exception. Do not count this as a fixed interaction or silently skip it. Retain failing artifacts and verify the details-slider alternative while tracking the patch follow-up.

@@ -161,7 +161,8 @@ final class NavigationUITests: XCTestCase {
         let rows = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Mark ' AND label ENDSWITH ' active'"))
         XCTAssertEqual(rows.count, 3)
         for index in 0..<3 {
-            rows.element(boundBy: index).swipeLeft()
+            let title = String(rows.element(boundBy: index).label.dropFirst("Mark ".count).dropLast(" active".count))
+            app.buttons["Task details: \(title)"].swipeLeft()
             app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'task.remove.'")).firstMatch.tap()
             XCTAssertTrue(app.buttons["task.archiveChoice"].waitForExistence(timeout: 3))
             XCTAssertTrue(app.buttons["task.deleteChoice"].exists)
@@ -233,8 +234,8 @@ final class NavigationUITests: XCTestCase {
         let second = app.buttons["Complete Review the project notes"]
         XCTAssertTrue(first.waitForExistence(timeout: 5))
         XCTAssertLessThan(first.frame.midY, second.frame.midY)
-        let start = first.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-        let end = second.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9))
+        let start = app.buttons["Task details: Plan the week"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let end = app.buttons["Task details: Review the project notes"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9))
         start.press(forDuration: 0.15, thenDragTo: end)
         XCTAssertGreaterThan(first.frame.midY, second.frame.midY)
         XCTAssertTrue(app.buttons["tab.active"].exists)
@@ -418,6 +419,25 @@ final class NavigationUITests: XCTestCase {
         screenshot.lifetime = .keepAlways
         add(screenshot)
         toggle.tap()
+    }
+
+    func testMoveFeedbackIsBriefAndDoesNotMoveThePageHeaderOrNavigation() {
+        app.buttons["tab.completed"].tap()
+        let header = app.staticTexts["page.title"].frame
+        let navigation = app.otherElements["navigation.bar"].frame
+        app.buttons["Actions for Set up the planning app"].tap()
+        app.buttons["Archive"].tap()
+        let feedback = app.buttons["task.feedback"]
+        XCTAssertTrue(feedback.waitForExistence(timeout: 2))
+        XCTAssertEqual(feedback.label, "Moved to Archived")
+        XCTAssertEqual(app.staticTexts["page.title"].frame.minY, header.minY, accuracy: 1)
+        XCTAssertEqual(app.otherElements["navigation.bar"].frame.minY, navigation.minY, accuracy: 1)
+        XCTAssertGreaterThan(feedback.frame.minY, app.frame.height / 2)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Short status message above stable navigation"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        assertDisappears(feedback)
     }
 
     func testTaskDetailsAndCreationRemainAvailable() {

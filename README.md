@@ -6,7 +6,7 @@ Planning is a learning project with a practical goal: create a calm, low-frictio
 
 ## Product principles
 
-- **Make the next action obvious.** Empty space adds a plan, a task tap completes it, a long press opens its details, and trailing controls expose details and task actions.
+- **Make the next action obvious.** Empty space adds a plan, the completion circle changes task status, and task text opens details. Trailing controls expose details and task actions.
 - **Keep the interface small.** The main screen focuses on the user’s current plans rather than menus, accounts, or configuration.
 - **Use familiar iOS patterns.** Sheets, buttons, menus, date pickers, and system icons make the experience easier to learn.
 - **Respect attention.** Reminders are opt-in, local to the device, and can repeat only until the task is finished.
@@ -22,14 +22,19 @@ This does not claim to solve every accessibility need. It is a foundation intend
 | --- | --- |
 | Tap unused space in the plan list | Opens the new-task sheet |
 | Enter a task title, optional group and description, then tap **Add** | Saves a task on the device |
-| Tap a task | Marks it complete or incomplete |
+| Tap a task’s completion circle | Marks it complete or incomplete |
+| Tap task text | Opens task details without changing completion |
 | Long-press a task, tap an Active cog, or choose Edit from Completed’s ellipsis menu | Opens task details, including description, group, and reminders |
 | Swipe left on an active task | Replaces its cog with a Delete button |
 | Remove a completed task | Offers Archive or confirmed permanent deletion |
 | Copy a completed or archived task | Opens a prefilled new task; Add selects Active and Cancel retains the original page/scroll |
 | Restore an archived task | Returns it to Completed without restarting reminders |
 | Press and hold a task | Lifts it above the list while nearby tasks preview their new positions |
-| Enable notifications | Chooses daily or weekly timing, a time of day, and whether to repeat until completion |
+| Enable notifications | Chooses daily or weekly frequency, weekday for weekly reminders, time, and whether to repeat until completion |
+
+When Active is empty, the whole content area opens a new task, as does the Active heading or its Add button. The empty state has a short instruction without an illustration or a duplicate Add button. Navigation remains available.
+
+In the task editor, Title’s **Done** key dismisses the keyboard without saving. The keyboard-down control above the keyboard also dismisses it while editing a multiline description. Choose **New group** inside the Group selector to create and select a group; cancelling that form preserves the previous selection. Groups are saved immediately, so cancelling the task does not remove a newly created group.
 
 The floating bottom bar has four destinations: **Active**, **Completed**, **Archived**, and **Settings**. Active shows grouped unfinished plans; Completed shows finished plans with a checkmark, strikethrough text, reduced emphasis, and an ellipsis menu for Edit, Copy, Archive, and Delete. Archived holds completed tasks you choose to keep, with saved details, restoration to Completed, Copy into a prefilled new task, and confirmed permanent deletion.
 
@@ -41,13 +46,19 @@ Collapse requires actual scrollable content. A short Completed list or Settings 
 
 Settings offers **System**, **Light**, and **Dark** appearance, **Keep navigation expanded**, **Haptic feedback**, notification permission status, and version/build information. Dark is the initial default; your choice applies to sheets and navigation and survives relaunch. The app retains its rounded task rows and familiar system controls in both appearances.
 
-The existing active-task drag interaction is preserved for a separate UX iteration. A vertical drag beginning on an active task can reorder it; scrolling in the list margin moves that list. Completed rows scroll normally. Reordering does not collapse navigation.
+Task progress is optional and starts disabled. Enable **Task progress** in Settings to expand **To do** and **In progress**. **Edit labels** supports adding, renaming, removing, and reordering labels. The saved order applies within every Active task group, including General; the first label starts new tasks. Keep at least one label. Removing a used label moves its tasks to the first remaining label after Save; Cancel discards draft changes.
+
+Enabled task cards show a slim progress bar without repeating their section label. Task details use a stepped slider between labels. Dragging into another progress subgroup changes the task’s label; dragging within a subgroup keeps manual order. Subgroups are lightly indented within each task group. Dropping onto another task-group heading preserves progress, while dropping into its progress subgroup applies that label. Empty groups and General can receive tasks. Transfers apply together on release to keep drop targets steady. Progress does not complete a task: the completion circle remains separate, and only actual completion fills the bar. The bar represents label position without estimating work or time. Disabling progress hides the controls and retains assignments for later use. Copy starts a new task at the starting label; completion/archive/restore retain the original task’s marker.
+
+Successful archive/restore/delete actions show a short status message above navigation, clearing after three seconds (six with VoiceOver). Tap it to dismiss sooner. Save errors remain visible and wrap fully. Messages do not shift the page header or navigation.
+
+A vertical drag beginning on active task text can reorder it within its task group; scrolling in the list margin moves that list. Completed rows scroll normally. Reordering does not collapse navigation.
 
 Completing a task moves it to Completed; marking it active returns it to its group. Completing a task cancels its pending reminder. Marking it incomplete schedules the reminder again if it remains enabled.
 
 ## Privacy and reminders
 
-Task data, including archives, is stored locally as a versioned JSON snapshot in the app’s Application Support directory. Older supported snapshots migrate when saved. Load failures protect the existing file; failed saves leave the saved tasks unchanged. The app does not send task content off the phone.
+Task data, archives, progress labels, and assignments are stored together locally as a versioned JSON snapshot in the app’s Application Support directory. Older supported snapshots migrate when saved. Load failures protect the existing file; failed saves leave the saved tasks unchanged. The app does not send task content off the phone.
 
 Reminders use `UNUserNotificationCenter`, Apple’s local-notification API. When notifications are enabled for a task, iOS asks for permission. A daily reminder repeats each day at the selected time; a weekly reminder repeats on the chosen weekday and time. If **Repeat until done** is turned off, only the next matching notification is scheduled.
 
@@ -109,13 +120,13 @@ xcodebuild test -project PlanningApp.xcodeproj -scheme PlanningApp \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO
 ```
 
-Use a simulator name installed on your Mac. [The 0.5 release notes](docs/RELEASE_0.5.md#v0-5-5) record the latest scope, validation evidence, and device checks.
+Use a simulator name installed on your Mac. [The 0.6 release notes](docs/RELEASE_0.6.md#v0-6-0) record implemented behavior, validation evidence, and device checks.
 
 See [performance notes and the phone comparison steps](docs/PERFORMANCE.md) for the separate optimization follow-up.
 
 Additional project documents:
 
-- Release history lives in one document per minor series: [0.4](docs/RELEASE_0.4.md) and [0.5](docs/RELEASE_0.5.md). Each patch has its own version section; add future patch notes to the matching series document.
+- Release history lives in one document per minor series: [0.4](docs/RELEASE_0.4.md), [0.5](docs/RELEASE_0.5.md), and [0.6](docs/RELEASE_0.6.md). Each patch has its own version section; add future patch notes to the matching series document.
 
 - [Interface conventions](docs/UX_CONVENTIONS.md) define action wording, text layout, and shared page behavior.
 
@@ -164,24 +175,24 @@ The code intentionally leaves room for exploration rather than hiding everything
 
 The repository keeps source code, the Xcode project, shared schemes, and project documentation. It intentionally ignores `InternalDocs/`, local Xcode user data, and build artifacts.
 
-Use small, imperative commit messages that describe one change:
+Use Conventional Commits in the form `type(scope): short imperative description`. Keep each commit focused on one change:
 
 ```text
-Initial SwiftUI planning app
-Add task deletion flow
-Improve VoiceOver task actions
-Schedule weekly task reminders
+feat(app): create initial SwiftUI planning app
+feat(tasks): add task deletion flow
+fix(a11y): improve VoiceOver task actions
+feat(reminders): add weekly task reminders
 ```
 
-For feature work, start from an up-to-date default branch and use a focused branch:
+For release work, start from current main and name the branch `<version>-<short-description>`:
 
 ```bash
 git switch main
-git pull --ff-only
-git switch -c feature/task-deletion
+git pull --ff-only origin main
+git switch -c 0.6.0-task-usability
 ```
 
-Keep each branch centered on one user-facing improvement, verify it on a simulator or device, then commit the finished change.
+Keep focused commits throughout implementation. Use `<version>: <title>` for the PR title, review the full pushed diff and behavioral regressions, then squash-merge with a Conventional Commit subject and delete the source branch. Preserve owner-requested local testing holds and unrelated Xcode user state.
 
 ## Status
 

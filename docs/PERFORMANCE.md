@@ -72,3 +72,27 @@ The unit/UI suite and a device-SDK Release build are checked for this change; ph
 ## Validation record
 
 The 23-test suite (18 unit tests and five UI tests) passed on iPhone 17 Pro / iOS 26.5. The optimized app also built successfully in Release for the iPhone device SDK with signing disabled. The final iPhone 15 Pro / iOS 17.2 run passed all 24 tests (18 unit tests and six UI tests), including an additional drag/reorder regression verifying that geometry caching preserves the current interaction. Result bundles are local under `/tmp/planning-optimized-tests.xcresult` and `/tmp/planning-optimized-ios17-tests.xcresult`.
+
+<a id="v0-6-progress"></a>
+
+## 0.6.0 optional progress
+
+Progress preserves lazy rendering and adds cached stable partitions within each task group. Progress rows and section headers share one identity domain so a task can move between labels without destroying its active drag gesture. Group/label candidates, marker lookups, and marker positions are bounded to current data and discarded with the presentation caches. A section drop compares its destination and marker directly rather than comparing the full task array during drag updates. Configuration saves and final order saves retain the atomic snapshot contract.
+
+The fixed 10,000-task Release fixture and the original two benchmark methods are unchanged. An isolated checkout of `34b6db2` supplied the prior build; both versions used the same iPhone 17 Pro/iOS 26.5 destination, Xcode 26.6, sequential execution, and `ENABLE_TESTABILITY=YES`. Two added methods apply the same workload with progress enabled and alternating assignments across the two labels. Each result averages five iterations.
+
+| Store collection work | Prior build | Progress off | Progress on |
+| --- | --- | --- | --- |
+| 50 warmed collection/count reads | 0.000268 s | 0.000276 s | 0.000288 s |
+| Five fresh stores with complete collection reads | 0.127950 s | 0.129039 s | 0.161980 s |
+
+The enabled feature has extra cold work for label partitions and stable presentation rows. Its final two cases also read the global row projection; the original default-off methods retain their baseline workload. Default-off cold collection work was about 1% higher in this comparison; the warm difference was about 0.008 milliseconds for the entire 50-read loop. Reading the additional global row projection with progress off took 0.134965 seconds for five fresh stores, compared with 0.129039 seconds for the original collection-only workload. These are store measurements, not row-layout, frame-rate, or energy results. Early runs under different simulator load varied more, so the original isolated checkout was rerun under the current conditions; those earlier bundles are retained rather than treated as an optimization result.
+
+Progress adds a task reference field and retained current-data projections, so it does not claim a memory reduction. XCTest memory metrics are recorded in the bundles; different case order and allocator reuse prevent attributing process peak differences solely to caches. Purge/freshness tests establish that cached label lookups, positions, sections, and candidates rebuild correctly without publishing or altering saved data.
+
+Evidence: `/tmp/planning-progress-baseline-controlled.xcresult` and `/tmp/planning-progress-complete-unit.xcresult`. Earlier measurements: `/tmp/planning-060-progress-baseline.xcresult`, `/tmp/planning-060-progress-measured.xcresult`, and `/tmp/planning-progress-final-release-unit.xcresult`. Repeat the physical-phone comparison with progress off/on, the same task data, and Low Power Mode off/on before drawing conclusions about interaction smoothness.
+
+
+The later cross-task-group extension uses one global row identity domain. It removes the intermediate per-group row arrays and derives global rows from the current progress partitions. Group/progress assignment is deferred until release; hovering only changes the pending destination/preview, and an unchanged destination does not rescan empty groups. Same-label reorder still previews live. The final enabled benchmarks also read the global row cache; an added disabled-mode cold-presentation case measures that new projection separately from the unchanged original collection baseline. Their evidence is recorded in the final 0.6 release validation.
+
+The review follow-up separately caches displayed General lanes, which include saved tasks with missing group references, while retaining raw-group lookups for existing reordering. Group identity resolves through the current group-name lookup rather than scanning groups on each geometry update. The extra General partitions are bounded to current active data and invalidated on task, group, or configuration changes and memory pressure. Cancellation restores the latest saved snapshot once, without a disk write or applying a pending destination. These correctness fixes do not claim a new phone frame-rate or memory improvement; Release collection benchmarks and cache freshness/purge checks remain part of validation.

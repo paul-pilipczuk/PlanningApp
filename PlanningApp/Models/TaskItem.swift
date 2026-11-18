@@ -38,6 +38,7 @@ struct TaskItem: Codable, Identifiable, Equatable {
     var isCompleted: Bool
     var reminder: ReminderSettings
     var archivedAt: Date?
+    var progressMarkerID: UUID?
 
     var isArchived: Bool { archivedAt != nil }
 
@@ -48,7 +49,8 @@ struct TaskItem: Codable, Identifiable, Equatable {
         groupID: UUID? = nil,
         isCompleted: Bool = false,
         reminder: ReminderSettings = ReminderSettings(),
-        archivedAt: Date? = nil
+        archivedAt: Date? = nil,
+        progressMarkerID: UUID? = nil
     ) {
         self.id = id
         self.title = title
@@ -57,6 +59,7 @@ struct TaskItem: Codable, Identifiable, Equatable {
         self.isCompleted = isCompleted
         self.reminder = reminder
         self.archivedAt = archivedAt
+        self.progressMarkerID = progressMarkerID
     }
 
     /// A copy is a new active draft; preparing it has no persistence or reminder effects.
@@ -67,7 +70,7 @@ struct TaskItem: Codable, Identifiable, Equatable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, description, groupID, isCompleted, reminder, archivedAt
+        case id, title, description, groupID, isCompleted, reminder, archivedAt, progressMarkerID
     }
 
     init(from decoder: Decoder) throws {
@@ -79,6 +82,7 @@ struct TaskItem: Codable, Identifiable, Equatable {
         isCompleted = try values.decode(Bool.self, forKey: .isCompleted)
         reminder = try values.decode(ReminderSettings.self, forKey: .reminder)
         archivedAt = try values.decodeIfPresent(Date.self, forKey: .archivedAt)
+        progressMarkerID = try values.decodeIfPresent(UUID.self, forKey: .progressMarkerID)
     }
 }
 
@@ -95,13 +99,59 @@ struct TaskGroup: Codable, Identifiable, Equatable {
 struct TaskSection: Identifiable {
     let group: TaskGroup?
     let tasks: [TaskItem]
+    var progressSections: [TaskProgressSection] = []
 
     var id: UUID? { group?.id }
     var title: String { group?.name ?? "General" }
 }
 
+/// Stable task identities span every task group as well as its progress sections.
+enum ActiveTaskRow: Identifiable {
+    case group(TaskGroup?, isEmpty: Bool)
+    case progress(groupID: UUID?, marker: ProgressMarker, isEmpty: Bool)
+    case task(TaskItem)
+
+    enum ID: Hashable { case group(UUID?), progress(UUID?, UUID), task(UUID) }
+    var id: ID {
+        switch self {
+        case .group(let group, _): .group(group?.id)
+        case .progress(let groupID, let marker, _): .progress(groupID, marker.id)
+        case .task(let task): .task(task.id)
+        }
+    }
+}
+
+struct TaskProgressSection: Identifiable {
+    let marker: ProgressMarker
+    let tasks: [TaskItem]
+    var id: UUID { marker.id }
+}
+
 struct PlanningData: Codable {
-    var version: Int = 3
+    var version: Int = 4
     var tasks: [TaskItem]
     var groups: [TaskGroup]
+    var progressConfiguration = ProgressConfiguration()
+
+    private enum CodingKeys: String, CodingKey { case version, tasks, groups, progressConfiguration }
+
+    init(version: Int = 4, tasks: [TaskItem], groups: [TaskGroup], progressConfiguration: ProgressConfiguration = ProgressConfiguration()) {
+        self.version = version
+        self.tasks = tasks
+        self.groups = groups
+        self.progressConfiguration = progressConfiguration
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        version = try values.decode(Int.self, forKey: .version)
+        tasks = try values.decode([TaskItem].self, forKey: .tasks)
+        groups = try values.decode([TaskGroup].self, forKey: .groups)
+        let progress = try values.decodeIfPresent(ProgressConfiguration.self, forKey: .progressConfiguration)
+        if version == 4 && progress == nil {
+            throw DecodingError.dataCorruptedError(forKey: .progressConfiguration, in: values,
+                                                  debugDescription: "Progress configuration is missing.")
+        }
+        progressConfiguration = progress ?? ProgressConfiguration()
+    }
 }

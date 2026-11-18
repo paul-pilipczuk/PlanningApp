@@ -104,7 +104,7 @@ final class ArchiveTests: XCTestCase {
             XCTAssertTrue(store.archivedTasks.isEmpty)
             XCTAssertTrue(store.archive(taskID: task.id))
             let saved = try JSONDecoder().decode(PlanningData.self, from: Data(contentsOf: url))
-            XCTAssertEqual(saved.version, 3)
+            XCTAssertEqual(saved.version, 4)
         }
     }
 

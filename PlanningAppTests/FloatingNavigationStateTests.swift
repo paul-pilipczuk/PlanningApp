@@ -2,6 +2,29 @@ import XCTest
 @testable import PlanningApp
 
 final class FloatingNavigationStateTests: XCTestCase {
+    func testNavigationFramesRemainValidDuringTransientWidthProposals() {
+        for width: CGFloat in [0, 1, 17, 18, -1, .nan, .infinity, -.infinity] {
+            let layout = FloatingNavigationLayout(containerWidth: width)
+            XCTAssertTrue(layout.containerWidth.isFinite, "Container width: \(width)")
+            XCTAssertGreaterThanOrEqual(layout.containerWidth, 0)
+            XCTAssertTrue(layout.selectionWidth.isFinite, "Selection width: \(width)")
+            XCTAssertGreaterThanOrEqual(layout.selectionWidth, 0)
+            for tab in PlanningTab.allCases {
+                let offset = layout.selectionOffset(for: tab)
+                XCTAssertTrue(offset.isFinite)
+                XCTAssertGreaterThanOrEqual(offset, 0)
+                XCTAssertLessThanOrEqual(offset + layout.selectionWidth, layout.containerWidth)
+            }
+        }
+    }
+
+    func testNavigationLayoutPreservesNormalTabSizesAndOffsets() {
+        let layout = FloatingNavigationLayout(containerWidth: 343)
+        XCTAssertEqual(layout.containerWidth, 343)
+        XCTAssertEqual(layout.selectionWidth, 81.25)
+        XCTAssertEqual(PlanningTab.allCases.map { layout.selectionOffset(for: $0) }, [6, 89.25, 172.5, 255.75])
+    }
+
     func testNavigationStartsExpanded() {
         XCTAssertFalse(FloatingNavigationState().isCollapsed)
     }

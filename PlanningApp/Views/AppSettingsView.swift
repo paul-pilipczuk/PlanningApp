@@ -7,6 +7,8 @@ struct AppSettingsView: View {
     @EnvironmentObject private var preferences: AppPreferences
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isEditingProgress = false
     @State private var notificationStatus = "Checking…"
 
     var body: some View {
@@ -31,6 +33,36 @@ struct AppSettingsView: View {
                         .accessibilityIdentifier("settings.hapticFeedback")
                         .accessibilityHint("Controls Planning’s feedback. Availability also depends on your iPhone’s settings and hardware.")
                         .padding(16)
+                }
+                settingsSection("Task progress") {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Toggle("Use task progress", isOn: Binding(
+                            get: { taskStore.progressConfiguration.isEnabled },
+                            set: { _ = taskStore.setProgressEnabled($0) }
+                        ))
+                        .disabled(taskStore.hasLoadFailure)
+                        .accessibilityIdentifier("settings.taskProgress")
+                        .accessibilityHint("Shows progress bars and orders tasks by label within each group.")
+                        .padding(16)
+                        if taskStore.progressConfiguration.isEnabled {
+                            ForEach(taskStore.progressConfiguration.markers) { marker in
+                                Divider().padding(.leading, 16)
+                                Text(marker.label)
+                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                                    .padding(.horizontal, 16)
+                            }
+                            Divider().padding(.leading, 16)
+                            Button("Edit labels", systemImage: "slider.horizontal.3") { isEditingProgress = true }
+                                .frame(minHeight: 44)
+                                .padding(.horizontal, 16).padding(.vertical, 4)
+                                .accessibilityIdentifier("settings.progressLabels")
+                        }
+                        if taskStore.hasLoadFailure {
+                            Text("Task progress is available after your saved plans can be opened.")
+                                .font(.footnote).foregroundStyle(.secondary).padding(16)
+                        }
+                    }
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: taskStore.progressConfiguration.isEnabled)
                 }
                 settingsSection("Notifications") {
                     VStack(alignment: .leading, spacing: 12) {
@@ -69,6 +101,9 @@ struct AppSettingsView: View {
         .background(Color(uiColor: .systemGroupedBackground))
         .modifier(TaskScrollObserver(onOffsetChange: onScrollOffset))
         .accessibilityIdentifier("settings.scroll")
+        .sheet(isPresented: $isEditingProgress) {
+            TaskProgressSettingsView(configuration: taskStore.progressConfiguration)
+        }
         .task { await refreshNotificationStatus() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await refreshNotificationStatus() } }

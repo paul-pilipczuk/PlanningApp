@@ -2,6 +2,29 @@
 
 All notable user-facing changes to this project are documented here.
 
+## [0.6.0] - 2026-11-17
+
+- Add optional task progress, disabled by default, with editable To do and In progress labels.
+- Add custom labels, native rename/remove/reorder editing, and stable ordering within every task group.
+- Show slim unlabeled progress bars on task cards and a stable stepped slider in details; lightly nest progress subgroups.
+- Support dragging into empty/populated progress subgroups and between task groups, previewing before applying group/label/order together on release.
+- Preserve assignments when progress is off and keep completion independent of the configured labels.
+- Store progress configuration and assignments atomically in snapshot schema 4, retaining older supported data and failed-save protection.
+- Replace persistent success banners with short, auto-closing status feedback and keep errors readable.
+- Seed new pages at their known top position so batched first scroll updates still collapse navigation.
+
+- Separate task completion circles from task text, which opens details on Active and Completed.
+- Make the empty Active content area a creation target without an illustration or duplicate Add button.
+- Dismiss the title keyboard with Done and provide a keyboard-down control for multiline input.
+- Move New group into the Group selector with a dedicated creation form.
+- Expose weekday and time together for weekly reminders.
+- Avoid invalid keyboard accessory frames while preserving the labelled keyboard-down control and standard suggestions.
+- Blend the compact Settings title into its page background.
+- Preserve existing reminders during progress, group, and description edits; keep legacy unknown progress references editable.
+- Resolve General drop targets consistently for saved tasks with missing groups and discard interrupted drag previews safely.
+- Retain the held drag source during same-subgroup reordering, including tasks with missing saved references.
+- Keep arbitrary nested subgroups and subgroup-derived numeric progress for future work.
+
 ## [0.5.5] - 2026-11-13
 
 - Reuse current task collections and group lookups instead of filtering/sorting them during repeated view updates.
