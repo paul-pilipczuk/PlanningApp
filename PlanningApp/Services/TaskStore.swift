@@ -18,7 +18,12 @@ final class TaskStore: ObservableObject {
         }
     }
     @Published private(set) var groups: [TaskGroup] {
-        didSet { cachedSections = nil; cachedActiveRows = nil; cachedGroupNames = nil }
+        didSet {
+            cachedSections = nil
+            cachedActiveRows = nil
+            cachedGroupNames = nil
+            cachedActiveGroups.removeAll(keepingCapacity: false)
+        }
     }
     @Published private(set) var progressConfiguration: ProgressConfiguration {
         didSet {
@@ -51,6 +56,7 @@ final class TaskStore: ObservableObject {
     private struct ActiveLane: Hashable {
         let groupID: UUID?
         let markerID: UUID?
+        var usesDisplayedGroup = false
     }
     private var cachedActiveGroups: [ActiveLane: [TaskItem]] = [:]
     private var cachedProgressMarkers: [UUID: ProgressMarker]?
@@ -68,6 +74,12 @@ final class TaskStore: ObservableObject {
                     let completed = samples.tasks.filter { $0.isCompleted && !$0.isArchived }.prefix(1)
                     let archived = samples.tasks.filter(\.isArchived).prefix(1)
                     samples.tasks = Array(active) + Array(completed) + Array(archived)
+                }
+                if ProcessInfo.processInfo.arguments.contains("-orphaned-data"),
+                   let index = samples.tasks.firstIndex(where: { !$0.isCompleted && !$0.isArchived }) {
+                    samples.tasks[index].groupID = UUID(uuidString: "00000000-0000-0000-0000-000000000010")!
+                    samples.tasks[index].progressMarkerID = UUID(uuidString: "00000000-0000-0000-0000-000000000020")!
+                    samples.progressConfiguration.isEnabled = ProcessInfo.processInfo.arguments.contains("-progress-enabled")
                 }
                 if ProcessInfo.processInfo.arguments.contains("-short-completed-data") {
                     samples.tasks = Array(samples.tasks.filter { $0.isCompleted && !$0.isArchived }.prefix(3))
@@ -184,6 +196,29 @@ final class TaskStore: ObservableObject {
         return result
     }
 
+    /// General includes supported saved tasks whose original group is missing.
+    /// Cache this displayed lane separately from the raw-group reorder contract.
+    func displayedActiveTasks(in groupID: UUID?, progressMarkerID: UUID? = nil) -> [TaskItem] {
+        if let groupID {
+            guard groupNamesByID[groupID] != nil else { return [] }
+            return activeTasks(in: groupID, progressMarkerID: progressMarkerID)
+        }
+        let markerID = progressConfiguration.isEnabled ? progressMarkerID : nil
+        let lane = ActiveLane(groupID: nil, markerID: markerID, usesDisplayedGroup: true)
+        if let cached = cachedActiveGroups[lane] { return cached }
+        let filtered = incompleteTasks.filter {
+            displayGroupID(for: $0) == nil && (markerID == nil || progressMarker(for: $0).id == markerID)
+        }
+        let result = markerID == nil ? orderedByProgress(filtered) : filtered
+        if !result.isEmpty { cachedActiveGroups[lane] = result }
+        return result
+    }
+
+    func displayGroupID(for task: TaskItem) -> UUID? {
+        guard let id = task.groupID, groupNamesByID[id] != nil else { return nil }
+        return id
+    }
+
     func progressMarker(for task: TaskItem) -> ProgressMarker {
         if let id = task.progressMarkerID, let marker = progressMarkersByID[id] { return marker }
         return progressConfiguration.markers[0]
@@ -266,10 +301,14 @@ final class TaskStore: ObservableObject {
 
     func groupName(for task: TaskItem) -> String {
         guard let groupID = task.groupID else { return "General" }
+        return groupNamesByID[groupID] ?? "General"
+    }
+
+    private var groupNamesByID: [UUID: String] {
         if cachedGroupNames == nil {
             cachedGroupNames = Dictionary(groups.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
         }
-        return cachedGroupNames?[groupID] ?? "General"
+        return cachedGroupNames ?? [:]
     }
 
     /// Memory pressure may discard all projections without changing saved state
@@ -310,6 +349,7 @@ final class TaskStore: ObservableObject {
     func update(taskID: UUID, title: String, description: String, groupID: UUID?, reminder: ReminderSettings, progressMarkerID: UUID? = nil) -> Bool {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty, let index = tasks.firstIndex(where: { $0.id == taskID }), !tasks[index].isArchived else { return false }
+        let needsReminderUpdate = tasks[index].title != title || tasks[index].reminder != reminder
         var candidate = tasks
         candidate[index].title = title
         candidate[index].description = description.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -320,7 +360,7 @@ final class TaskStore: ObservableObject {
             candidate[index].progressMarkerID = progressMarkerID
         }
         guard commit(candidate, groups: groups) else { return false }
-        reconcileReminder(for: taskID)
+        if needsReminderUpdate { reconcileReminder(for: taskID) }
         return true
     }
 
@@ -426,7 +466,7 @@ final class TaskStore: ObservableObject {
         if let destinationID {
             guard destinationID != taskID,
                   let destination = tasks.first(where: { $0.id == destinationID }),
-                  !destination.isCompleted, !destination.isArchived, destination.groupID == groupID,
+                  !destination.isCompleted, !destination.isArchived, displayGroupID(for: destination) == groupID,
                   !progressConfiguration.isEnabled || progressMarker(for: destination).id == markerID else { return false }
         }
         var candidate = tasks
@@ -437,11 +477,11 @@ final class TaskStore: ObservableObject {
         if let destinationID, let index = candidate.firstIndex(where: { $0.id == destinationID }) {
             insertionIndex = index
         } else if let last = candidate.lastIndex(where: {
-            !$0.isCompleted && !$0.isArchived && $0.groupID == groupID &&
+            !$0.isCompleted && !$0.isArchived && displayGroupID(for: $0) == groupID &&
                 (!progressConfiguration.isEnabled || progressMarker(for: $0).id == markerID)
         }) {
             insertionIndex = last + 1
-        } else if let last = candidate.lastIndex(where: { !$0.isCompleted && !$0.isArchived && $0.groupID == groupID }) {
+        } else if let last = candidate.lastIndex(where: { !$0.isCompleted && !$0.isArchived && displayGroupID(for: $0) == groupID }) {
             insertionIndex = last + 1
         } else { insertionIndex = min(source, candidate.count) }
         guard insertionIndex != source || task.groupID != tasks[source].groupID || task.progressMarkerID != tasks[source].progressMarkerID else { return false }
@@ -460,6 +500,11 @@ final class TaskStore: ObservableObject {
             return false
         }
         return true
+    }
+
+    /// Cancellation restores the latest durable state without saving a preview.
+    func cancelTaskOrderChanges() {
+        if tasks != savedData.tasks { tasks = savedData.tasks }
     }
 
     func dismissError() { if !hasLoadFailure { errorMessage = nil } }
@@ -513,7 +558,7 @@ final class TaskStore: ObservableObject {
         // Finish a cancelled operation before replacing this task's request.
         reminderOperations[id] = Task { [weak self] in
             await previous?.value
-            guard !Task.isCancelled, let current = self?.tasks.first(where: { $0.id == id }), current.title == task.title, current.description == task.description,
+            guard !Task.isCancelled, let current = self?.tasks.first(where: { $0.id == id }), current.title == task.title,
                   current.reminder == task.reminder, current.isCompleted == task.isCompleted,
                   current.isArchived == task.isArchived else { return }
             await notifications.schedule(for: current)

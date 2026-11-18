@@ -114,7 +114,8 @@ struct TaskEditorView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(task == nil ? "Add" : "Save") {
-                        if onSave(title, description, groupID, reminder, progressMarkerID) { dismiss() }
+                        let progressID = taskStore.progressConfiguration.isEnabled ? resolvedProgressMarkerID : nil
+                        if onSave(title, description, groupID, reminder, progressID) { dismiss() }
                     }
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .accessibilityIdentifier("task.save")
@@ -150,8 +151,14 @@ struct TaskEditorView: View {
     private var hasChanges: Bool {
         guard let task else { return false }
         let progressChanged = taskStore.progressConfiguration.isEnabled &&
-            (progressMarkerID ?? taskStore.progressConfiguration.markers[0].id) != taskStore.progressMarker(for: task).id
+            resolvedProgressMarkerID != taskStore.progressMarker(for: task).id
         return title != task.title || description != task.description || groupID != task.groupID || reminder != task.reminder || progressChanged
+    }
+
+    /// Match the slider's fallback without discarding hidden metadata when disabled.
+    private var resolvedProgressMarkerID: UUID {
+        let labels = taskStore.progressConfiguration.markers
+        return labels.first(where: { $0.id == progressMarkerID })?.id ?? labels[0].id
     }
 
 }

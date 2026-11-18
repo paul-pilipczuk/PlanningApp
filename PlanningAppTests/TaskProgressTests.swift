@@ -75,6 +75,112 @@ final class TaskProgressTests: XCTestCase {
         XCTAssertEqual(store.activeSections.first?.tasks.map(\.id), [missing.id])
     }
 
+    func testTransferBeforeAnOrphanTaskUsesDisplayedGeneralMembership() throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let work = TaskGroup(name: "Work")
+        let source = TaskItem(title: "Source", groupID: work.id, progressMarkerID: todo.id)
+        let orphan = TaskItem(title: "Missing group", groupID: UUID(), progressMarkerID: doing.id)
+        let general = TaskItem(title: "General", progressMarkerID: doing.id)
+        let data = PlanningData(tasks: [source, orphan, general], groups: [work],
+                                progressConfiguration: ProgressConfiguration(isEnabled: true))
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try JSONEncoder().encode(data).write(to: url)
+        let store = TaskStore(storageURL: url, notifications: nil)
+        XCTAssertFalse(store.hasLoadFailure)
+        XCTAssertTrue(store.move(taskID: source.id, toGroup: nil, progressMarkerID: doing.id, before: orphan.id))
+        let moved = try XCTUnwrap(store.tasks.first { $0.id == source.id })
+        XCTAssertNil(moved.groupID)
+        XCTAssertEqual(moved.progressMarkerID, doing.id)
+        XCTAssertEqual(store.activeSections.last?.tasks.map(\.id), [source.id, orphan.id, general.id])
+        XCTAssertEqual(store.tasks.first { $0.id == orphan.id }?.groupID, orphan.groupID)
+        XCTAssertEqual(TaskStore(storageURL: url, notifications: nil).tasks, store.tasks)
+    }
+
+    func testGeneralHeadingAppendIncludesOrphanTasksWithProgressOnOrOff() {
+        for enabled in [false, true] {
+            let work = TaskGroup(name: "Work")
+            let general = TaskItem(title: "General", progressMarkerID: doing.id)
+            let source = TaskItem(title: "Source", groupID: work.id, progressMarkerID: doing.id)
+            let orphan = TaskItem(title: "Missing group", groupID: UUID(), progressMarkerID: doing.id)
+            let store = TaskStore(sampleData: PlanningData(tasks: [general, source, orphan], groups: [work],
+                                  progressConfiguration: ProgressConfiguration(isEnabled: enabled)))
+            XCTAssertTrue(store.move(taskID: source.id, toGroup: nil))
+            XCTAssertEqual(store.activeSections.last?.tasks.map(\.id), [general.id, orphan.id, source.id])
+        }
+    }
+
+    func testDisplayedGeneralLanesStayFreshAcrossMovesConfigurationReloadAndPurge() throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let work = TaskGroup(name: "Work")
+        let missingGroup = TaskGroup(name: "Recovered")
+        let orphan = TaskItem(title: "Missing group", groupID: missingGroup.id, progressMarkerID: todo.id)
+        let general = TaskItem(title: "General", progressMarkerID: doing.id)
+        let source = TaskItem(title: "Work", groupID: work.id, progressMarkerID: doing.id)
+        let data = PlanningData(tasks: [orphan, general, source], groups: [work],
+                                progressConfiguration: ProgressConfiguration(isEnabled: true))
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try JSONEncoder().encode(data).write(to: url)
+        let store = TaskStore(storageURL: url, notifications: nil)
+        XCTAssertNil(store.displayGroupID(for: orphan))
+        XCTAssertEqual(store.displayGroupID(for: source), work.id)
+        XCTAssertEqual(store.displayedActiveTasks(in: nil).map(\.id), [orphan.id, general.id])
+        XCTAssertEqual(store.displayedActiveTasks(in: nil, progressMarkerID: doing.id).map(\.id), [general.id])
+        XCTAssertEqual(store.activeTasks(in: nil).map(\.id), [general.id])
+        XCTAssertEqual(store.activeTasks(in: missingGroup.id).map(\.id), [orphan.id])
+        XCTAssertTrue(store.displayedActiveTasks(in: missingGroup.id).isEmpty)
+        XCTAssertTrue(store.move(taskID: source.id, toGroup: nil, progressMarkerID: doing.id, before: general.id))
+        XCTAssertEqual(store.displayedActiveTasks(in: nil).map(\.id), [orphan.id, source.id, general.id])
+        XCTAssertTrue(store.updateProgressConfiguration(ProgressConfiguration(isEnabled: true, markers: [doing, todo])))
+        XCTAssertEqual(store.displayedActiveTasks(in: nil).map(\.id), [source.id, general.id, orphan.id])
+        store.releasePresentationCaches()
+        XCTAssertEqual(store.displayedActiveTasks(in: nil, progressMarkerID: doing.id).map(\.id), [source.id, general.id])
+
+        let recovered = PlanningData(tasks: store.tasks, groups: [work, missingGroup], progressConfiguration: store.progressConfiguration)
+        try JSONEncoder().encode(recovered).write(to: url, options: .atomic)
+        store.reload()
+        XCTAssertEqual(store.displayGroupID(for: orphan), missingGroup.id)
+        XCTAssertEqual(store.displayedActiveTasks(in: nil).map(\.id), [source.id, general.id])
+        XCTAssertEqual(store.displayedActiveTasks(in: missingGroup.id).map(\.id), [orphan.id])
+    }
+
+    func testCancellingLiveReorderRestoresSavedStateWithoutWriting() throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let first = TaskItem(title: "First", progressMarkerID: todo.id)
+        let second = TaskItem(title: "Second", progressMarkerID: todo.id)
+        let data = PlanningData(tasks: [first, second], groups: [], progressConfiguration: ProgressConfiguration(isEnabled: true))
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let bytes = try JSONEncoder().encode(data)
+        try bytes.write(to: url)
+        var writes = 0
+        let store = TaskStore(storageURL: url, notifications: nil, write: { _, _ in writes += 1 })
+        XCTAssertTrue(store.move(taskID: second.id, before: first.id, persist: false))
+        XCTAssertEqual(store.displayedActiveTasks(in: nil).map(\.id), [second.id, first.id])
+        store.cancelTaskOrderChanges()
+        XCTAssertEqual(store.tasks, data.tasks)
+        XCTAssertEqual(store.displayedActiveTasks(in: nil).map(\.id), [first.id, second.id])
+        XCTAssertEqual(try Data(contentsOf: url), bytes)
+        XCTAssertEqual(writes, 0)
+        let revision = store.taskRevision
+        store.cancelTaskOrderChanges()
+        XCTAssertEqual(store.taskRevision, revision)
+    }
+
+    func testCancellingLaterPreviewPreservesLatestSavedEdits() {
+        let first = TaskItem(title: "First")
+        let second = TaskItem(title: "Second")
+        let store = enabledStore([first, second])
+        XCTAssertTrue(store.move(taskID: second.id, before: first.id, persist: false))
+        XCTAssertTrue(store.update(taskID: first.id, title: "Saved edit", description: "", groupID: nil, reminder: first.reminder))
+        let saved = store.tasks
+        XCTAssertTrue(store.move(taskID: first.id, before: second.id, persist: false))
+        store.cancelTaskOrderChanges()
+        XCTAssertEqual(store.tasks, saved)
+        XCTAssertEqual(store.tasks.last?.title, "Saved edit")
+    }
+
     func testChangingProgressRefreshesWarmCollectionsAndPersistsWithoutCompleting() throws {
         let url = temporaryURL()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
@@ -381,6 +487,59 @@ final class TaskProgressTests: XCTestCase {
         // Change metadata before the queued reminder operation begins.
         XCTAssertTrue(store.setProgress(taskID: id, markerID: doing.id))
         for _ in 0..<20 where scheduler.scheduled.isEmpty { await Task.yield() }
+        XCTAssertEqual(scheduler.scheduled, [id])
+        XCTAssertTrue(scheduler.cancelled.isEmpty)
+    }
+
+    func testDetailMetadataSavesDoNotRescheduleRemindersButScheduleChangesDo() async throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let scheduler = ProgressReminderSpy()
+        let store = TaskStore(storageURL: url, notifications: scheduler)
+        XCTAssertTrue(store.setProgressEnabled(true))
+        let group = try XCTUnwrap(store.createGroup(named: "Work"))
+        var reminder = ReminderSettings(isEnabled: true, hour: 9, minute: 30, repeatsUntilCompleted: false)
+        XCTAssertTrue(store.add(title: "Reminder", description: "", groupID: nil, reminder: reminder))
+        let id = store.tasks[0].id
+        for _ in 0..<20 { await Task.yield() }
+        XCTAssertEqual(scheduler.scheduled, [id])
+
+        XCTAssertTrue(store.update(taskID: id, title: "Reminder", description: "", groupID: nil,
+                                   reminder: reminder, progressMarkerID: doing.id))
+        for _ in 0..<20 { await Task.yield() }
+        XCTAssertEqual(scheduler.scheduled, [id], "A progress-only save must not recreate a delivered one-shot reminder")
+        XCTAssertTrue(store.update(taskID: id, title: "Reminder", description: "Notes", groupID: group.id,
+                                   reminder: reminder, progressMarkerID: doing.id))
+        for _ in 0..<20 { await Task.yield() }
+        XCTAssertEqual(scheduler.scheduled, [id])
+
+        XCTAssertTrue(store.update(taskID: id, title: "Renamed", description: "Notes", groupID: group.id,
+                                   reminder: reminder, progressMarkerID: doing.id))
+        for _ in 0..<20 { await Task.yield() }
+        XCTAssertEqual(scheduler.scheduled.count, 2)
+        reminder.hour = 10
+        XCTAssertTrue(store.update(taskID: id, title: "Renamed", description: "Notes", groupID: group.id,
+                                   reminder: reminder, progressMarkerID: doing.id))
+        for _ in 0..<20 { await Task.yield() }
+        XCTAssertEqual(scheduler.scheduled.count, 3)
+        reminder.isEnabled = false
+        XCTAssertTrue(store.update(taskID: id, title: "Renamed", description: "Notes", groupID: group.id,
+                                   reminder: reminder, progressMarkerID: doing.id))
+        XCTAssertEqual(scheduler.cancelled, [id])
+    }
+
+    func testMetadataEditBeforeQueuedReminderStartsStillSchedulesOnce() async throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let scheduler = ProgressReminderSpy()
+        let store = TaskStore(storageURL: url, notifications: scheduler)
+        XCTAssertTrue(store.setProgressEnabled(true))
+        let reminder = ReminderSettings(isEnabled: true)
+        XCTAssertTrue(store.add(title: "Reminder", description: "", groupID: nil, reminder: reminder))
+        let id = store.tasks[0].id
+        XCTAssertTrue(store.update(taskID: id, title: "Reminder", description: "New notes", groupID: nil,
+                                   reminder: reminder, progressMarkerID: doing.id))
+        for _ in 0..<20 { await Task.yield() }
         XCTAssertEqual(scheduler.scheduled, [id])
         XCTAssertTrue(scheduler.cancelled.isEmpty)
     }

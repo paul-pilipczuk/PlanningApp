@@ -69,6 +69,93 @@ final class TaskProgressUITests: XCTestCase {
         add(attachment)
     }
 
+    private func launchOrphanedTask(progressEnabled: Bool) {
+        app.terminate()
+        app.launchArguments += ["-orphaned-data"]
+        if progressEnabled { app.launchArguments += ["-progress-enabled"] }
+        app.launch()
+        XCTAssertTrue(app.buttons["Task details: Plan the week"].waitForExistence(timeout: 3))
+    }
+
+    func testOrphanedProgressTaskCanBeEditedAndSaved() {
+        launchOrphanedTask(progressEnabled: true)
+        app.buttons["Task details: Plan the week"].tap()
+        XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["task.group"].label.contains("General"))
+        XCTAssertEqual(app.staticTexts["task.progressLabel"].label, "To do")
+        let title = app.textFields["task.title"]
+        title.tap()
+        title.typeText(" updated")
+        app.buttons["task.save"].tap()
+        let updated = app.buttons["Complete Plan the week updated"]
+        XCTAssertTrue(updated.waitForExistence(timeout: 3), "Saving the displayed fallback progress must not leave the editor stuck open")
+        app.buttons["Task details: Plan the week updated"].tap()
+        XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))
+        XCTAssertEqual(title.value as? String, "Plan the week updated")
+        XCTAssertTrue(app.buttons["task.group"].label.contains("General"))
+        XCTAssertEqual(app.staticTexts["task.progressLabel"].label, "To do")
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(updated.waitForExistence(timeout: 3))
+    }
+
+    func testOrphanedMetadataDoesNotBlockEditingWithProgressDisabled() {
+        launchOrphanedTask(progressEnabled: false)
+        app.buttons["Task details: Plan the week"].tap()
+        XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.sliders["task.progressSlider"].exists)
+        XCTAssertFalse(app.staticTexts["task.progressLabel"].exists)
+        let title = app.textFields["task.title"]
+        title.tap()
+        title.typeText(" updated")
+        app.buttons["task.save"].tap()
+        let updated = app.buttons["Complete Plan the week updated"]
+        XCTAssertTrue(updated.waitForExistence(timeout: 3), "Hidden progress metadata must not prevent an ordinary task edit")
+        app.buttons["Task details: Plan the week updated"].tap()
+        XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))
+        XCTAssertEqual(title.value as? String, "Plan the week updated")
+        XCTAssertFalse(app.sliders["task.progressSlider"].exists)
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(updated.waitForExistence(timeout: 3))
+    }
+
+    func testDraggingOntoOrphanedGeneralTaskUsesDisplayedGroupAndProgress() {
+        launchOrphanedTask(progressEnabled: true)
+        app.buttons["Task details: Review the project notes"].tap()
+        let slider = app.sliders["task.progressSlider"]
+        XCTAssertTrue(slider.waitForExistence(timeout: 3))
+        slider.adjust(toNormalizedSliderPosition: 1)
+        XCTAssertEqual(app.staticTexts["task.progressLabel"].label, "In progress")
+        app.buttons["task.save"].tap()
+
+        let source = app.buttons["Task details: Review the project notes"]
+        let target = app.buttons["Task details: Plan the week"]
+        XCTAssertTrue(source.waitForExistence(timeout: 3))
+        XCTAssertTrue(target.waitForExistence(timeout: 3))
+        let bar = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Progress for Review the project notes")).firstMatch
+        XCTAssertEqual(bar.value as? String, "In progress")
+        let list = app.scrollViews["taskList.active"]
+        for _ in 0..<3 where target.frame.maxY > app.otherElements["navigation.bar"].frame.minY - 8 {
+            let start = list.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.75))
+            let end = list.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.67))
+            start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0.3)
+        }
+        let general = app.staticTexts["task.groupHeader.general"]
+        XCTAssertTrue(source.isHittable)
+        XCTAssertTrue(target.isHittable)
+        XCTAssertGreaterThan(target.frame.minY, general.frame.maxY)
+        source.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.15, thenDragTo: target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)))
+        XCTAssertEqual(bar.value as? String, "To do")
+        XCTAssertGreaterThan(source.frame.minY, general.frame.maxY)
+        XCTAssertLessThan(source.frame.midY, target.frame.midY)
+        source.tap()
+        XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["task.group"].label.contains("General"))
+        XCTAssertEqual(app.staticTexts["task.progressLabel"].label, "To do")
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.buttons["Complete Review the project notes"].waitForExistence(timeout: 3))
+    }
+
     func testProgressStartsOffAndExpandsLabelsOnlyWhenEnabled() {
         app.buttons["Task details: Plan the week"].tap()
         XCTAssertFalse(app.sliders["task.progressSlider"].exists)
