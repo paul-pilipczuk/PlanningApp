@@ -80,6 +80,11 @@ final class TaskStore: ObservableObject {
                     samples.tasks[index].groupID = UUID(uuidString: "00000000-0000-0000-0000-000000000010")!
                     samples.tasks[index].progressMarkerID = UUID(uuidString: "00000000-0000-0000-0000-000000000020")!
                     samples.progressConfiguration.isEnabled = ProcessInfo.processInfo.arguments.contains("-progress-enabled")
+                    if ProcessInfo.processInfo.arguments.contains("-orphaned-pair"),
+                       let peer = samples.tasks.indices.first(where: { $0 != index && !samples.tasks[$0].isCompleted && !samples.tasks[$0].isArchived }) {
+                        samples.tasks[peer].groupID = samples.tasks[index].groupID
+                        samples.tasks[peer].progressMarkerID = ProgressConfiguration.defaultMarkers[0].id
+                    }
                 }
                 if ProcessInfo.processInfo.arguments.contains("-short-completed-data") {
                     samples.tasks = Array(samples.tasks.filter { $0.isCompleted && !$0.isArchived }.prefix(3))
@@ -435,9 +440,9 @@ final class TaskStore: ObservableObject {
     func moveToEnd(taskID: UUID, persist: Bool = true) -> Bool {
         guard !hasLoadFailure, let source = tasks.firstIndex(where: { $0.id == taskID }),
               !tasks[source].isCompleted, !tasks[source].isArchived else { return false }
-        var task = tasks[source]
-        guard let last = activeTasks(in: task.groupID).last, last.id != taskID else { return false }
-        if progressConfiguration.isEnabled { task.progressMarkerID = progressMarker(for: last).id }
+        let task = tasks[source]
+        let markerID = progressConfiguration.isEnabled ? progressMarker(for: task).id : nil
+        guard let last = activeTasks(in: task.groupID, progressMarkerID: markerID).last, last.id != taskID else { return false }
         var candidate = tasks
         candidate.remove(at: source)
         guard let index = candidate.firstIndex(where: { $0.id == last.id }) else { return false }

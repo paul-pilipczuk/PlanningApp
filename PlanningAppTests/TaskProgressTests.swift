@@ -110,6 +110,30 @@ final class TaskProgressTests: XCTestCase {
         }
     }
 
+    func testMovingToLaneEndRetainsRawOrphanGroupAndStoredProgress() throws {
+        let missingGroupID = UUID()
+        let first = TaskItem(title: "First", groupID: missingGroupID, progressMarkerID: UUID())
+        let second = TaskItem(title: "Second", groupID: missingGroupID, progressMarkerID: todo.id)
+        let laterLabel = TaskItem(title: "Doing", groupID: missingGroupID, progressMarkerID: doing.id)
+        let store = enabledStore([first, second, laterLabel])
+        XCTAssertTrue(store.moveToEnd(taskID: first.id, persist: false))
+        let reordered = try XCTUnwrap(store.activeTasks(in: missingGroupID).first { $0.id == first.id })
+        XCTAssertEqual(reordered, first, "A live same-lane reorder must preserve the drag's raw lookup fields")
+        XCTAssertEqual(store.activeTasks(in: missingGroupID, progressMarkerID: todo.id).map(\.id), [second.id, first.id])
+        XCTAssertEqual(store.activeTasks(in: missingGroupID, progressMarkerID: doing.id).map(\.id), [laterLabel.id])
+        store.cancelTaskOrderChanges()
+        XCTAssertEqual(store.tasks, [first, second, laterLabel])
+    }
+
+    func testLastTaskInProgressLaneDoesNotJumpIntoAnotherLabel() {
+        let missingGroupID = UUID()
+        let first = TaskItem(title: "To do", groupID: missingGroupID, progressMarkerID: todo.id)
+        let laterLabel = TaskItem(title: "Doing", groupID: missingGroupID, progressMarkerID: doing.id)
+        let store = enabledStore([first, laterLabel])
+        XCTAssertFalse(store.moveToEnd(taskID: first.id))
+        XCTAssertEqual(store.tasks, [first, laterLabel])
+    }
+
     func testDisplayedGeneralLanesStayFreshAcrossMovesConfigurationReloadAndPurge() throws {
         let url = temporaryURL()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }

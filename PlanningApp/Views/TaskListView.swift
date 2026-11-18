@@ -315,11 +315,7 @@ struct TaskListView: View {
                   location.y > nextFrame.midY {
             let moved: Bool
             if currentIndex + 1 == candidates.count - 1 {
-                if let currentMarker {
-                    moved = taskStore.move(taskID: draggedTaskID, toProgressMarker: currentMarker, persist: false)
-                } else {
-                    moved = taskStore.moveToEnd(taskID: draggedTaskID, persist: false)
-                }
+                moved = taskStore.moveToEnd(taskID: draggedTaskID, persist: false)
             } else {
                 moved = taskStore.move(taskID: draggedTaskID, before: candidates[currentIndex + 2].id, persist: false)
             }
