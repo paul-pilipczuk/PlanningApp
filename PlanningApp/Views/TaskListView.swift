@@ -101,7 +101,11 @@ struct TaskListView: View {
                         switch row {
                         case .group(let group, let isEmpty): groupHeader(group, isEmpty: isEmpty)
                         case .progress(let groupID, let marker, let isEmpty): progressHeader(marker, groupID: groupID, isEmpty: isEmpty).padding(.leading, 8)
-                        case .task(let task): taskRow(task).padding(.leading, taskStore.progressConfiguration.isEnabled ? 8 : 0)
+                        case .task(let task):
+                            taskRow(task)
+                                .accessibilityElement(children: .contain)
+                                .accessibilityIdentifier("task.card.\(task.title)")
+                                .padding(.leading, taskStore.progressConfiguration.isEnabled ? 8 : 0)
                         }
                     }
                 } else {
@@ -546,8 +550,6 @@ private struct TaskRow: View {
         }
         .padding(TaskCardMetrics.padding)
         .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("task.card.\(task.title)")
         .onChange(of: isTouchActive) { _, isActive in
             if !isActive { cancelInteraction() }
         }
