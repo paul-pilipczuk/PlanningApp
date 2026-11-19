@@ -8,6 +8,7 @@ All notable user-facing changes to this project are documented here.
 - Keep populated headings compact and accept drops across the enlarged destination.
 - Isolate continuous drag-preview movement from the task list and remove redundant source lookups and geometry allocations.
 - Keep another task's touch from moving, finishing, or cancelling an existing drag.
+- Prevent horizontal task-swipe recognition from consuming vertical scrolls on iOS 18 and later; retain the iOS 17 gesture path.
 - Record the performance gap analysis, measured view-update reduction, and device-profiling follow-ups.
 
 ## [0.6.1] - 2026-11-18
