@@ -88,6 +88,7 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["tab.settings"].exists)
         let completedTitleHeight = app.staticTexts["page.title"].frame.height
         app.scrollViews["taskList.completed"].swipeUp()
+        if !expand.exists { recordScrollDiagnostics("Completed collapse after row swipe") }
         XCTAssertTrue(expand.waitForExistence(timeout: 3))
         XCTAssertLessThan(app.staticTexts["page.title"].frame.height, completedTitleHeight)
         XCTAssertEqual(app.staticTexts["page.title"].frame.midX, app.frame.midX, accuracy: 2)
@@ -100,6 +101,46 @@ final class NavigationUITests: XCTestCase {
         completedList.swipeDown(velocity: .fast)
         XCTAssertEqual(app.staticTexts["page.title"].frame.height, completedTitleHeight, accuracy: 2)
         XCTAssertTrue(expand.exists)
+    }
+
+    func testRowSwipesPreserveVerticalScrollingAndHorizontalActions() {
+        app.buttons["tab.completed"].tap()
+        let list = app.scrollViews["taskList.completed"]
+        let largeHeight = app.staticTexts["page.title"].frame.height
+        // Begin inside known task text, so a gap cannot avoid gesture arbitration.
+        let scrollSource = app.buttons["Task details: Send the meeting notes"]
+        XCTAssertTrue(scrollSource.isHittable)
+        let start = scrollSource.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -180)),
+                    withVelocity: .fast, thenHoldForDuration: 0)
+        XCTAssertTrue(app.buttons["navigation.expand"].waitForExistence(timeout: 3))
+        XCTAssertLessThan(app.staticTexts["page.title"].frame.height, largeHeight)
+        list.swipeDown(velocity: .fast)
+        list.swipeDown(velocity: .fast)
+
+        let completed = app.buttons["Task details: Set up the planning app"]
+        XCTAssertTrue(completed.isHittable)
+        completed.swipeLeft()
+        let removal = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'task.remove.'")).firstMatch
+        XCTAssertTrue(removal.waitForExistence(timeout: 3))
+        XCTAssertEqual(removal.label, "Remove")
+        completed.swipeRight()
+        XCTAssertFalse(removal.exists)
+        XCTAssertTrue(app.buttons["Actions for Set up the planning app"].exists)
+        completed.tap()
+        XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.buttons["Mark Set up the planning app active"].exists)
+
+        if app.buttons["navigation.expand"].exists { app.buttons["navigation.expand"].tap() }
+        app.buttons["tab.active"].tap()
+        let active = app.buttons["Task details: Plan the week"]
+        active.swipeLeft()
+        XCTAssertTrue(removal.waitForExistence(timeout: 3))
+        XCTAssertEqual(removal.label, "Delete")
+        active.swipeRight()
+        XCTAssertFalse(removal.exists)
+        XCTAssertTrue(app.buttons["Complete Plan the week"].exists)
     }
 
     func testSettingsAndArchiveCollapseWhenContentOverflows() {
@@ -408,6 +449,7 @@ final class NavigationUITests: XCTestCase {
         app.buttons["tab.completed"].tap()
         let initialHeight = app.staticTexts["page.title"].frame.height
         app.scrollViews["taskList.completed"].swipeUp()
+        if app.staticTexts["page.title"].frame.height >= initialHeight { recordScrollDiagnostics("Completed compact heading after row swipe") }
         XCTAssertTrue(app.buttons["tab.settings"].exists)
         XCTAssertFalse(app.buttons["navigation.expand"].exists)
         XCTAssertLessThan(app.staticTexts["page.title"].frame.height, initialHeight)
@@ -419,6 +461,17 @@ final class NavigationUITests: XCTestCase {
         screenshot.lifetime = .keepAlways
         add(screenshot)
         toggle.tap()
+    }
+
+    private func recordScrollDiagnostics(_ name: String) {
+        let snapshot = XCTAttachment(screenshot: app.screenshot())
+        snapshot.name = name
+        snapshot.lifetime = .keepAlways
+        add(snapshot)
+        let hierarchy = XCTAttachment(string: app.debugDescription)
+        hierarchy.name = "\(name) hierarchy"
+        hierarchy.lifetime = .keepAlways
+        add(hierarchy)
     }
 
     func testMoveFeedbackIsBriefAndDoesNotMoveThePageHeaderOrNavigation() {

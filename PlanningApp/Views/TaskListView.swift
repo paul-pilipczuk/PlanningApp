@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct TaskListView: View {
     let tab: PlanningTab
@@ -258,7 +259,11 @@ struct TaskListView: View {
             }
             .accessibilityAction(named: "Task details") { taskToEdit = task }
             .opacity(draggedTaskID == task.id ? 0 : 1)
-            .simultaneousGesture(swipeGesture(for: task))
+            .modifier(TaskRowSwipe { translation in
+                guard abs(translation.width) > abs(translation.height) else { return }
+                if translation.width < -45 { taskShowingDeleteID = task.id }
+                else if translation.width > 45 { taskShowingDeleteID = nil }
+            })
     }
 
     private func taskFrameReader(for task: TaskItem) -> some View {
@@ -276,14 +281,6 @@ struct TaskListView: View {
                 .frame(width: dragPreviewFrame.width).scaleEffect(1.035).shadow(color: .black.opacity(0.45), radius: 14, y: 8)
                 .modifier(TaskDragPreviewPosition(position: dragPosition, frame: dragPreviewFrame, frames: taskFrames))
                 .allowsHitTesting(false).accessibilityHidden(true)
-        }
-    }
-
-    private func swipeGesture(for task: TaskItem) -> some Gesture {
-        DragGesture(minimumDistance: 20).onEnded { value in
-            guard abs(value.translation.width) > abs(value.translation.height) else { return }
-            if value.translation.width < -45 { taskShowingDeleteID = task.id }
-            else if value.translation.width > 45 { taskShowingDeleteID = nil }
         }
     }
 
@@ -392,6 +389,58 @@ struct TaskListView: View {
             .frame(maxWidth: .infinity, minHeight: 230)
     }
 
+}
+
+/// Reject vertical movement before the row swipe can compete with scrolling.
+private struct TaskRowSwipe: ViewModifier {
+    let onEnded: (CGSize) -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.gesture(HorizontalTaskSwipe(onEnded: onEnded))
+        } else {
+            content.simultaneousGesture(DragGesture(minimumDistance: 20).onEnded { value in
+                onEnded(value.translation)
+            })
+        }
+    }
+}
+
+@available(iOS 18.0, *)
+private struct HorizontalTaskSwipe: UIGestureRecognizerRepresentable {
+    let onEnded: (CGSize) -> Void
+
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIGestureRecognizer(context: Context) -> UIPanGestureRecognizer {
+        let recognizer = UIPanGestureRecognizer()
+        recognizer.maximumNumberOfTouches = 1
+        recognizer.cancelsTouchesInView = false
+        recognizer.delegate = context.coordinator
+        return recognizer
+    }
+
+    func handleUIGestureRecognizerAction(_ recognizer: UIPanGestureRecognizer, context: Context) {
+        guard recognizer.state == .ended else { return }
+        let translation = recognizer.translation(in: recognizer.view)
+        onEnded(CGSize(width: translation.x, height: translation.y))
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard let recognizer = gestureRecognizer as? UIPanGestureRecognizer else { return false }
+            let velocity = recognizer.velocity(in: recognizer.view)
+            return abs(velocity.x) > abs(velocity.y)
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            true
+        }
+    }
 }
 
 /// Retained by the list but observed only by the lifted preview.
