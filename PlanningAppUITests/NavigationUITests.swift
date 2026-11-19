@@ -131,6 +131,9 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))
         app.buttons["Cancel"].tap()
         XCTAssertTrue(app.buttons["Mark Set up the planning app active"].exists)
+        completed.press(forDuration: 0.7)
+        XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))
+        app.buttons["Cancel"].tap()
 
         if app.buttons["navigation.expand"].exists { app.buttons["navigation.expand"].tap() }
         app.buttons["tab.active"].tap()
@@ -140,6 +143,9 @@ final class NavigationUITests: XCTestCase {
         XCTAssertEqual(removal.label, "Delete")
         active.swipeRight()
         XCTAssertFalse(removal.exists)
+        active.press(forDuration: 0.7)
+        XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))
+        app.buttons["Cancel"].tap()
         XCTAssertTrue(app.buttons["Complete Plan the week"].exists)
     }
 
