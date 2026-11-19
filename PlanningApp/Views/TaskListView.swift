@@ -21,7 +21,8 @@ struct TaskListView: View {
     @State private var dragGroupID: UUID?
     @State private var pendingDrop: PendingTaskDrop?
     @State private var dragPreviewFrame: CGRect?
-    @State private var dragTranslation: CGSize = .zero
+    // Only the lifted preview observes continuous movement, not the lazy list.
+    @State private var dragPosition = TaskDragPosition()
     @State private var hasPendingReorder = false
     @State private var reorderFeedback = 0
     @State private var taskFrames = TaskFrameCache()
@@ -47,13 +48,13 @@ struct TaskListView: View {
         }
         .onPreferenceChange(TaskListOriginPreferenceKey.self) { taskFrames.origin = $0 }
         .onPreferenceChange(TaskFramePreferenceKey.self) { taskFrames.rows = $0 }
-        .onPreferenceChange(ProgressFramePreferenceKey.self) { taskFrames.replaceProgressFrames($0) }
+        .onPreferenceChange(ProgressFramePreferenceKey.self) { taskFrames.dropZones = $0 }
         .sensoryFeedback(.selection, trigger: reorderFeedback) { _, _ in preferences.hapticFeedback }
         .onChange(of: tab) { _, _ in
             cancelDragging()
             taskShowingDeleteID = nil
             taskFrames.rows = [:]
-            taskFrames.dropZones = []
+            taskFrames.dropZones = [:]
         }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { cancelDragging() }
@@ -240,9 +241,14 @@ struct TaskListView: View {
                 onDragChanged: { drag in
                     guard tab == .active else { return }
                     beginDragging(task)
-                    dragTranslation = drag.translation
-                    updateTaskOrder(for: drag.location)
-                }, onDragEnded: { _ in endDragging() }, onDragCancelled: cancelDragging)
+                    guard draggedTaskID == task.id else { return }
+                    dragPosition.translation = drag.translation
+                    updateTaskOrder(for: drag.location, source: task)
+                }, onDragEnded: { _ in
+                    if draggedTaskID == task.id { endDragging() }
+                }, onDragCancelled: {
+                    if draggedTaskID == task.id { cancelDragging() }
+                })
             .background {
                 if tab == .active { taskFrameReader(for: task) }
             }
@@ -264,7 +270,8 @@ struct TaskListView: View {
         if let draggedTaskID, let task = taskStore.activeTasks(in: dragGroupID).first(where: { $0.id == draggedTaskID }), let dragPreviewFrame {
             TaskRow(task: previewTask(task), isDeleteVisible: false, onComplete: {}, onTaskTap: {}, onLongPress: {}, onConfigure: {}, onCopy: nil, onArchive: nil, onDelete: {}, onDragChanged: { _ in }, onDragEnded: { _ in }, onDragCancelled: {})
                 .frame(width: dragPreviewFrame.width).scaleEffect(1.035).shadow(color: .black.opacity(0.45), radius: 14, y: 8)
-                .offset(x: dragPreviewFrame.minX - taskFrames.origin.x, y: dragPreviewFrame.minY - taskFrames.origin.y + dragTranslation.height).allowsHitTesting(false).accessibilityHidden(true)
+                .modifier(TaskDragPreviewPosition(position: dragPosition, frame: dragPreviewFrame, frames: taskFrames))
+                .allowsHitTesting(false).accessibilityHidden(true)
         }
     }
 
@@ -287,9 +294,8 @@ struct TaskListView: View {
         hasPendingReorder = false
     }
 
-    private func updateTaskOrder(for location: CGPoint) {
-        guard let draggedTaskID else { return }
-        guard let current = taskStore.activeTasks(in: dragGroupID).first(where: { $0.id == draggedTaskID }) else { return }
+    private func updateTaskOrder(for location: CGPoint, source current: TaskItem) {
+        guard let draggedTaskID, current.id == draggedTaskID else { return }
         let currentMarker = taskStore.progressConfiguration.isEnabled ? taskStore.progressMarker(for: current).id : nil
         if let target = taskFrames.dropTarget(at: location) {
             let markerID = target.markerID ?? currentMarker
@@ -372,7 +378,7 @@ struct TaskListView: View {
     }
 
     private func clearDragging() {
-        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { draggedTaskID = nil; dragGroupID = nil; pendingDrop = nil; dragPreviewFrame = nil; dragTranslation = .zero }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { draggedTaskID = nil; dragGroupID = nil; pendingDrop = nil; dragPreviewFrame = nil; dragPosition.translation = .zero }
         hasPendingReorder = false
     }
 
@@ -382,6 +388,22 @@ struct TaskListView: View {
             .frame(maxWidth: .infinity, minHeight: 230)
     }
 
+}
+
+/// Retained by the list but observed only by the lifted preview.
+private final class TaskDragPosition: ObservableObject {
+    @Published var translation: CGSize = .zero
+}
+
+private struct TaskDragPreviewPosition: ViewModifier {
+    @ObservedObject var position: TaskDragPosition
+    let frame: CGRect
+    let frames: TaskFrameCache
+
+    func body(content: Content) -> some View {
+        content.offset(x: frame.minX - frames.origin.x,
+                       y: frame.minY - frames.origin.y + position.translation.height)
+    }
 }
 
 private enum TaskCardMetrics {
@@ -401,12 +423,13 @@ private final class TaskFrameCache {
     var origin: CGPoint = .zero
     var rows: [UUID: TaskRowGeometry] = [:]
     struct DropZone { let groupID: UUID?; let markerID: UUID?; let frame: CGRect }
-    var dropZones: [DropZone] = []
+    var dropZones: [ProgressDropTarget: CGRect] = [:]
 
     /// Expanded header regions can touch; choose the nearest heading deterministically.
     func dropTarget(at point: CGPoint) -> DropZone? {
         var nearest: DropZone?
-        for zone in dropZones where zone.frame.contains(point) {
+        for (target, frame) in dropZones where frame.contains(point) {
+            let zone = DropZone(groupID: target.groupID, markerID: target.markerID, frame: frame)
             if let current = nearest {
                 let distance = abs(zone.frame.midY - point.y)
                 let previous = abs(current.frame.midY - point.y)
@@ -414,10 +437,6 @@ private final class TaskFrameCache {
             } else { nearest = zone }
         }
         return nearest
-    }
-
-    func replaceProgressFrames(_ frames: [ProgressDropTarget: CGRect]) {
-        dropZones = frames.map { DropZone(groupID: $0.key.groupID, markerID: $0.key.markerID, frame: $0.value) }
     }
 }
 
