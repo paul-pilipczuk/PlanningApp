@@ -50,6 +50,8 @@ Task progress is optional and starts disabled. Enable **Task progress** in Setti
 
 Enabled task cards show a slim progress bar without repeating their section label. Task details use a stepped slider between labels. Dragging into another progress subgroup changes the task’s label; dragging within a subgroup keeps manual order. Subgroups are lightly indented within each task group. Dropping onto another task-group heading preserves progress, while dropping into its progress subgroup applies that label. Empty groups and General can receive tasks. Transfers apply together on release to keep drop targets steady. Progress does not complete a task: the completion circle remains separate, and only actual completion fills the bar. The bar represents label position without estimating work or time. Disabling progress hides the controls and retains assignments for later use. Copy starts a new task at the starting label; completion/archive/restore retain the original task’s marker.
 
+Empty group and progress drop areas share a standard task card's minimum height and text-size scaling, making the full destination easier to reach. Populated headings remain compact. Drag-preview movement updates its own view while actual ordering and destination changes still update the task list.
+
 Successful archive/restore/delete actions show a short status message above navigation, clearing after three seconds (six with VoiceOver). Tap it to dismiss sooner. Save errors remain visible and wrap fully. Messages do not shift the page header or navigation.
 
 A vertical drag beginning on active task text can reorder it within its task group; scrolling in the list margin moves that list. Completed rows scroll normally. Reordering does not collapse navigation.

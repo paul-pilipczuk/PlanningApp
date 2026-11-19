@@ -101,3 +101,27 @@ The review follow-up separately caches displayed General lanes, which include sa
 ## 0.6.1 drag-coordinate correction
 
 Row/drop measurements and drag locations now share global coordinates. One cached CGPoint holds the list origin solely for local preview placement; preference updates mutate the existing reference cache without observable publications, array transformations, or writes. The same narrow fixture failed with incorrect named-space geometry and passes with global geometry, including a scrolled larger-text layout. This is correctness/layout evidence, not a new phone frame-rate or energy measurement. Existing bounded task projections, lazy rows, save-on-release and rollback remain unchanged.
+
+<a id="v0-6-2-drag-gap-analysis"></a>
+
+## 0.6.2 drag gap analysis
+
+The audit covered task projections and invalidation, row rendering, scrolling/navigation, drag callbacks/geometry, persistence and reminders. The following decisions preserve the current feature set:
+
+| Gap | Patch decision | Remaining tradeoff |
+| --- | --- | --- |
+| Continuous preview translation refreshed the owning task list | Retain a small reference in `@State`; only the preview modifier observes its movement publisher | Real reorder/destination/lifecycle changes still refresh the list |
+| Each drag callback scanned the source's whole raw group before reading its current label lane | Use the current task supplied by its stable row closure; keep current-order lane queries | Candidate-index scans and projection rebuilds after actual reorders remain |
+| Each geometry preference update mapped its dictionary into another array | Retain the current geometry dictionary directly and keep nearest-target selection | Geometry measurement and hit testing still run as required |
+| Empty drop destinations were smaller than task cards | Share 72/84-point minimum card metrics and text-size scaling; enlarge only empty destinations | Empty groups consume more vertical space; populated headings stay compact |
+| Another row's touch could affect an existing drag | Guard row movement, release and cancellation by the owning task ID | Real system interruptions and simultaneous touches still need phone testing |
+| Actual reorders invalidate derived task projections | Retain bounded lazy caches and existing purge/invalidation rules | Incremental invalidation or eager lane indexing needs measured CPU/memory evidence before expanding complexity |
+| Full JSON saves run synchronously | Keep atomic saves, failure rollback, migration and reminder semantics | Profile large saved datasets on device; asynchronous persistence requires ordered durable writes and lifecycle recovery |
+
+### Equivalent gesture measurement
+
+Temporary counters measured `TaskListView.body` evaluations between drag lift and release. Both builds used Xcode 26.6, Debug, the same iPhone 17 Pro/iOS 26.5 simulator, standard text size, the unchanged ordinary sample fixture, sequential execution, and `testActiveTaskDragStillReordersWithoutCollapsingNavigation`. The same existing gesture produced **11 movement callbacks in each build**: the baseline evaluated the list body **14 times**, compared with **5** after isolating preview observation. Real reordering remains visible and the test verifies changed relative order and expanded navigation. This is one controlled interaction count, not a statistical timing benchmark, frame-rate result or battery claim.
+
+The continued orphan-pair progress workflow also passed with the preview isolation. Its enlarged destination changes drag distance, so its different callback counts are not presented as an equivalent timing comparison. All temporary counters and logging were removed from app source. Evidence: `/tmp/planning-062-drag-baseline.xcresult`, `/tmp/planning-062-progress-drag-baseline.xcresult`, `/tmp/planning-062-drag-optimized.xcresult`, and `/tmp/planning-062-body-counts.log`.
+
+The unchanged Release unit suite, including warm/cold collection benchmarks, cache freshness/purge, save failures and reminders, remains a correctness/regression check; no new store speed or memory improvement is claimed. Repeat Release phone profiling with the same dataset and thermal conditions, Low Power Mode off/on, progress off/on, and an older supported phone before attributing remaining lag or claiming end-to-end smoothness. Retain Time Profiler, SwiftUI update and hitch traces before considering the deferred cache/persistence work.

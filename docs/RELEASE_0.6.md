@@ -263,3 +263,27 @@ Temporary tracing was removed after diagnosis. Physical-device gesture feel and 
 | iPhone device-SDK Release build, signing disabled | Passed | `/tmp/planning-061-release.log` |
 
 Together the runs cover all seven targeted scenarios on each OS: default reordering, group/progress/orphan-target transfers, direct orphan-pair continuation, scrolled continuation, and shared compact headers in both appearances. The final scrolled fixture uses larger text because the small fixture fits a tall phone and correctly does not collapse navigation. No assertions were relaxed. An agent reviewed coordinate consistency and cache publication/per-frame costs; no static blocker was found. The expected-failure exception is absent from the final regression.
+
+
+<a id="v0-6-2"></a>
+
+## 0.6.2 — Easier drops and lighter dragging
+
+November 18, 2026 · Version 0.6.2, build 16
+
+Empty Active groups and progress subgroups now share a standard task card's minimum height: 72 points without progress, 84 with progress, with shared Dynamic Type scaling and natural text expansion. The whole destination accepts a drop, including near its lower edge. Populated headings remain compact, and destinations do not resize when a drag starts.
+
+Continuous preview translation is observed only by the lifted preview instead of the entire task list. Gesture updates reuse their current row's task instead of repeatedly searching the whole raw group, and geometry updates retain their existing dictionary without allocating another drop-zone array. Only the owning task's callbacks can move, end or cancel a drag. Lifecycle cancellation, global coordinates, live same-label order, pending transfers on release, stable IDs, haptics and save/rollback behavior remain intact. Persistence, reminders, data format and dependencies are unchanged.
+
+The [performance gap analysis](PERFORMANCE.md#v0-6-2-drag-gap-analysis) records implemented work and deferred cache/persistence investigations. A controlled ordinary drag produced 11 movement callbacks in both builds; list-body evaluations fell from 14 to 5. Temporary instrumentation was removed. This measures reduced view work, not phone frame rate, energy or memory improvement.
+
+### Validation
+
+| Check | Result | Local evidence |
+| --- | --- | --- |
+| New task-height/lower-edge drop cases, current iOS | Three passed, including larger accessibility text | `/tmp/planning-062-new-targets-current.xcresult` |
+| Full current-iOS Release unit suite | 78 passed, including existing benchmarks, cache freshness/purge, rollback and reminders | `/tmp/planning-062-release-unit.xcresult` |
+| Equivalent ordinary drag and continued progress workflow with temporary counters | Passed; counters removed before release verification | `/tmp/planning-062-drag-baseline.xcresult`, `/tmp/planning-062-progress-drag-baseline.xcresult`, `/tmp/planning-062-drag-optimized.xcresult` |
+| iPhone device-SDK Release build, signing disabled | Passed | `/tmp/planning-062-release.log` |
+
+The full current-iOS UI suite and narrow iOS 17 progress/drag/header suite are in progress. Their final outcomes and the exact pushed-head review will be recorded before merge. Larger-text screenshots have been inspected. Physical-device Release profiling with matched data and Low Power Mode off/on, simultaneous touches, system interruption feel, VoiceOver and haptics remain device checks; simulator layout/body counts cannot establish those results.

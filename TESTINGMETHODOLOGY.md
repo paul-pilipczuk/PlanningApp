@@ -167,3 +167,11 @@ The narrow iOS17/375×667 continued orphan-pair drag currently has one documente
 ## 0.6.1 iOS 17 geometry regression
 
 The formerly expected orphan-pair continuation failure is now an ordinary passing requirement. Cover direct dragging and a large-text fixture scrolled into compact-header mode, retaining assertions for source/peer visibility, applied bar/slider label, and unchanged completion. Larger text makes scrollability explicit on tall devices; a fitting page must not be forced to collapse navigation. Repeat neighboring default reordering, progress-section transfers, cross-group/orphan targets, and shared headers on iOS 17 and current iOS. Row/drop/event geometry shares global coordinates; the preview subtracts the cached list origin. Preserve 0.6.0 evidence as history rather than rewriting failed interactions as prior passes.
+
+## 0.6.2 empty destinations and drag observation
+
+Compare full empty destination frames with standard task-card frames, both with progress disabled and enabled. Release near the lower edge of the destination, rather than on its heading text, and verify the saved group/label and independent completion state. Include larger accessibility text, text containment, narrow iOS 17, and scrolled compact-header coordinates. Minimum card sizing scales with Dynamic Type; wrapped content may naturally exceed the minimum.
+
+Retain ordinary reorder, continued orphan-pair dragging, cross-group/label transfers, details/slider, completion, copy/archive/delete, header/navigation, keyboard, reminder, cache and rollback coverage. Row-specific movement/end/cancel must belong to the active drag; lifecycle cancellation remains unconditional. Verify simultaneous-touch and actual interruption behavior on a physical phone.
+
+The temporary before/after body counters use the same existing ordinary drag test, fixture, text size, simulator and Debug configuration. Count only lift-to-release list evaluations and movement callbacks; remove instrumentation before release checks. Keep these work counts separate from Release collection benchmarks and actual phone hitch/frame/energy measurements; see [the audit and evidence](docs/PERFORMANCE.md#v0-6-2-drag-gap-analysis).
