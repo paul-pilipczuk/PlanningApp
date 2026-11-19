@@ -25,6 +25,7 @@ struct TaskListView: View {
     @State private var hasPendingReorder = false
     @State private var reorderFeedback = 0
     @State private var taskFrames = TaskFrameCache()
+    @ScaledMetric(relativeTo: .body) private var minimumCardContentHeight = TaskCardMetrics.minimumContentHeight
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -132,7 +133,7 @@ struct TaskListView: View {
                 .accessibilityIdentifier("task.groupHeader.\(group?.id.uuidString ?? "general")")
             if isEmpty { Text("Drag a task here").font(.caption).foregroundStyle(.secondary) }
         }
-        .frame(maxWidth: .infinity, minHeight: isEmpty ? 44 : 28, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: isEmpty ? emptyDropHeight : 28, alignment: .leading)
         .padding(.top, 4)
         .background {
             if pendingDrop?.isGroupHeading == true && pendingDrop?.groupID == group?.id {
@@ -145,6 +146,8 @@ struct TaskListView: View {
                     value: [ProgressDropTarget(groupID: group?.id, markerID: nil): expandedDropFrame(proxy.frame(in: .global))])
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("task.groupDrop.\(group?.id.uuidString ?? "general")")
     }
 
     private func progressHeader(_ marker: ProgressMarker, groupID: UUID?, isEmpty: Bool) -> some View {
@@ -155,7 +158,7 @@ struct TaskListView: View {
             if isEmpty { Text("Drag a task here").font(.caption) }
         }
         .foregroundStyle(.secondary)
-        .frame(maxWidth: .infinity, minHeight: isEmpty ? 44 : 24, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: isEmpty ? emptyDropHeight : 24, alignment: .leading)
         .padding(.horizontal, isEmpty ? 10 : 0)
         .background {
             let isTarget = pendingDrop?.isGroupHeading == false && pendingDrop?.groupID == groupID && pendingDrop?.markerID == marker.id
@@ -169,6 +172,13 @@ struct TaskListView: View {
                     value: [ProgressDropTarget(groupID: groupID, markerID: marker.id): expandedDropFrame(proxy.frame(in: .global))])
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("progress.drop.\(groupID?.uuidString ?? "general").\(marker.id)")
+    }
+
+    private var emptyDropHeight: CGFloat {
+        TaskCardMetrics.minimumHeight(contentHeight: minimumCardContentHeight,
+                                      showsProgress: taskStore.progressConfiguration.isEnabled)
     }
 
     /// Compact headings still receive a forgiving 44-point vertical drop region.
@@ -374,6 +384,17 @@ struct TaskListView: View {
 
 }
 
+private enum TaskCardMetrics {
+    static let minimumContentHeight: CGFloat = 44
+    static let padding: CGFloat = 14
+    static let spacing: CGFloat = 8
+    static let progressHeight: CGFloat = 4
+
+    static func minimumHeight(contentHeight: CGFloat, showsProgress: Bool) -> CGFloat {
+        max(minimumContentHeight, contentHeight) + padding * 2 + (showsProgress ? spacing + progressHeight : 0)
+    }
+}
+
 /// Geometry is an input to drag handling, not rendered state. Keep measurements
 /// without invalidating the entire list every time the scroll position changes.
 private final class TaskFrameCache {
@@ -448,9 +469,10 @@ private struct TaskRow: View {
     @GestureState private var isTouchActive = false
     @State private var touchBeganAt: Date?
     @State private var isReordering = false
+    @ScaledMetric(relativeTo: .body) private var minimumContentHeight = TaskCardMetrics.minimumContentHeight
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: TaskCardMetrics.spacing) {
             HStack(spacing: 12) {
                 Button(action: onComplete) {
                     Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
@@ -499,10 +521,14 @@ private struct TaskRow: View {
                     .accessibilityLabel("Details for \(task.title)")
                 }
             }
-            if taskStore.progressConfiguration.isEnabled { TaskProgressIndicator(task: task) }
+            if taskStore.progressConfiguration.isEnabled {
+                TaskProgressIndicator(task: task).frame(height: TaskCardMetrics.progressHeight)
+            }
         }
-        .padding(14)
+        .padding(TaskCardMetrics.padding)
         .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("task.card.\(task.title)")
         .onChange(of: isTouchActive) { _, isActive in
             if !isActive { cancelInteraction() }
         }
@@ -567,7 +593,7 @@ private struct TaskRow: View {
                 Text(task.description).lineLimit(1).font(.subheadline).foregroundStyle(.secondary)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: max(TaskCardMetrics.minimumContentHeight, minimumContentHeight), alignment: .leading)
         .contentShape(Rectangle())
     }
 
