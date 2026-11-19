@@ -101,3 +101,38 @@ The review follow-up separately caches displayed General lanes, which include sa
 ## 0.6.1 drag-coordinate correction
 
 Row/drop measurements and drag locations now share global coordinates. One cached CGPoint holds the list origin solely for local preview placement; preference updates mutate the existing reference cache without observable publications, array transformations, or writes. The same narrow fixture failed with incorrect named-space geometry and passes with global geometry, including a scrolled larger-text layout. This is correctness/layout evidence, not a new phone frame-rate or energy measurement. Existing bounded task projections, lazy rows, save-on-release and rollback remain unchanged.
+
+<a id="v0-6-2-drag-gap-analysis"></a>
+
+## 0.6.2 drag gap analysis
+
+The audit covered task projections and invalidation, row rendering, scrolling/navigation, drag callbacks/geometry, persistence and reminders. The following decisions preserve the current feature set:
+
+| Gap | Patch decision | Remaining tradeoff |
+| --- | --- | --- |
+| Continuous preview translation refreshed the owning task list | Retain a small reference in `@State`; only the preview modifier observes its movement publisher | Real reorder/destination/lifecycle changes still refresh the list |
+| Each drag callback scanned the source's whole raw group before reading its current label lane | Use the current task supplied by its stable row closure; keep current-order lane queries | Candidate-index scans and projection rebuilds after actual reorders remain |
+| Each geometry preference update mapped its dictionary into another array | Retain the current geometry dictionary directly and keep nearest-target selection | Geometry measurement and hit testing still run as required |
+| Empty drop destinations were smaller than task cards | Share 72/84-point minimum card metrics and text-size scaling; enlarge only empty destinations | Empty groups consume more vertical space; populated headings stay compact |
+| Another row's touch could affect an existing drag | Guard row movement, release and cancellation by the owning task ID | Real system interruptions and simultaneous touches still need phone testing |
+| The existing horizontal row-swipe recognizer could accept a vertical gesture before its final direction check | On iOS 18+, use a public native pan bridge that rejects vertical motion before recognition; retain the iOS 17 implementation | Validate horizontal actions, nested Active reordering and ordinary details together; phone gesture feel remains a device check |
+| Actual reorders invalidate derived task projections | Retain bounded lazy caches and existing purge/invalidation rules | Incremental invalidation or eager lane indexing needs measured CPU/memory evidence before expanding complexity |
+| Full JSON saves run synchronously | Keep atomic saves, failure rollback, migration and reminder semantics | Profile large saved datasets on device; asynchronous persistence requires ordered durable writes and lifecycle recovery |
+
+### Equivalent gesture measurement
+
+Temporary counters measured `TaskListView.body` evaluations between drag lift and release. Both builds used Xcode 26.6, Debug, the same iPhone 17 Pro/iOS 26.5 simulator, standard text size, the unchanged ordinary sample fixture, sequential execution, and `testActiveTaskDragStillReordersWithoutCollapsingNavigation`. The same existing gesture produced **11 movement callbacks in each build**: the baseline evaluated the list body **14 times**, compared with **5** after isolating preview observation. Real reordering remains visible and the test verifies changed relative order and expanded navigation. This is one controlled interaction count, not a statistical timing benchmark, frame-rate result or battery claim.
+
+The continued orphan-pair progress workflow also passed with the preview isolation. Its enlarged destination changes drag distance, so its different callback counts are not presented as an equivalent timing comparison. All temporary counters and logging were removed from app source. Evidence: `/tmp/planning-062-drag-baseline.xcresult`, `/tmp/planning-062-progress-drag-baseline.xcresult`, `/tmp/planning-062-drag-optimized.xcresult`, and `/tmp/planning-062-body-counts.log`.
+
+A final comparison after the directional-swipe correction repeated the unchanged ordinary gesture on the same second iPhone 17 Pro/iOS 26.5 destination in both builds. Baseline: 14 list evaluations/11 movement callbacks; final build: 5 evaluations/10 callbacks. Callback delivery can vary, so these counts are retained explicitly rather than described as identical per-event timing. The final run also verifies taps, stationary long-presses and horizontal actions. Evidence: `/tmp/planning-062-final-counter-baseline.xcresult`, `/tmp/planning-062-final-counter-and-longpress.xcresult` and `/tmp/planning-062-final-body-counts.log`. Counters were removed again before the final Release checks.
+
+The unchanged Release unit suite, including warm/cold collection benchmarks, cache freshness/purge, save failures and reminders, remains a correctness/regression check; no new store speed or memory improvement is claimed. Repeat Release phone profiling with the same dataset and thermal conditions, Low Power Mode off/on, progress off/on, and an older supported phone before attributing remaining lag or claiming end-to-end smoothness. Retain Time Profiler, SwiftUI update and hitch traces before considering the deferred cache/persistence work.
+
+### Scroll-routing diagnosis
+
+The initial broader UI run passed 41 of 43 scenarios, with two intermittent Completed scroll failures. An isolated unchanged 0.6.1 checkout first passed six repetitions, then reproduced the same compact-heading failure in one of ten additional repetitions. The failure predates this patch. Temporary tracing recorded a row-swipe callback with zero horizontal and −200-point vertical translation while native content offset stayed zero; successful gestures produced normal positive offsets. The screenshot/hierarchy confirmed that the list stayed at its top. This was gesture routing, not a missing header update after a successful scroll.
+
+New card accessibility grouping was narrowed to Active so Completed retains its prior structure; that scope reduction alone did not eliminate the failure. An unproven sizing workaround was discarded. The final iOS 18+ recognizer filters direction before it begins, preserves the existing 45-point horizontal action threshold, permits the existing nested gesture cooperation, and publishes no movement state. It uses Apple's public [SwiftUI gesture bridge](https://developer.apple.com/documentation/swiftui/uigesturerecognizerrepresentable) and [recognizer-begin delegate](https://developer.apple.com/documentation/uikit/uigesturerecognizerdelegate/gesturerecognizershouldbegin(_:)); iOS 17 retains its original path. Tests start a fast vertical gesture explicitly inside task text, then verify horizontal reveal/hide, details, completion state and Active reorder rather than avoiding row bodies.
+
+Retained investigation evidence: `/tmp/planning-062-current-ui.xcresult`, `/tmp/planning-062-scroll-baseline.xcresult`, `/tmp/planning-062-scroll-baseline-repeated.xcresult`, `/tmp/planning-062-scroll-isolated.xcresult`, `/tmp/planning-062-narrowed-scroll.xcresult`, `/tmp/planning-062-scroll-trace.xcresult`, `/tmp/planning-062-scroll-geometry.log` and `/tmp/planning-062-scroll-trace-attachments/`. All temporary tracing was removed. Final validation is recorded in the [0.6.2 release notes](RELEASE_0.6.md#v0-6-2); a passing simulator run does not replace real-device interruption, VoiceOver or Low Power Mode profiling.

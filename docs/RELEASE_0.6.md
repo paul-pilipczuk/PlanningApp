@@ -263,3 +263,43 @@ Temporary tracing was removed after diagnosis. Physical-device gesture feel and 
 | iPhone device-SDK Release build, signing disabled | Passed | `/tmp/planning-061-release.log` |
 
 Together the runs cover all seven targeted scenarios on each OS: default reordering, group/progress/orphan-target transfers, direct orphan-pair continuation, scrolled continuation, and shared compact headers in both appearances. The final scrolled fixture uses larger text because the small fixture fits a tall phone and correctly does not collapse navigation. No assertions were relaxed. An agent reviewed coordinate consistency and cache publication/per-frame costs; no static blocker was found. The expected-failure exception is absent from the final regression.
+
+
+<a id="v0-6-2"></a>
+
+## 0.6.2 — Easier drops and lighter dragging
+
+November 18, 2026 · Version 0.6.2, build 16
+
+Empty Active groups and progress subgroups now share a standard task card's minimum height: 72 points without progress, 84 with progress, with shared Dynamic Type scaling and natural text expansion. The whole destination accepts a drop, including near its lower edge. Populated headings remain compact, and destinations do not resize when a drag starts.
+
+Continuous preview translation is observed only by the lifted preview instead of the entire task list. Gesture updates reuse their current row's task instead of repeatedly searching the whole raw group, and geometry updates retain their existing dictionary without allocating another drop-zone array. Only the owning task's callbacks can move, end or cancel a drag. Lifecycle cancellation, global coordinates, live same-label order, pending transfers on release, stable IDs, haptics and save/rollback behavior remain intact. Persistence, reminders, data format and dependencies are unchanged.
+
+The broader review also reproduced an existing intermittent Completed scroll failure on unchanged 0.6.1. Its horizontal row-swipe recognizer could accept vertical movement before the final direction check. On iOS 18 and later, a small public native gesture bridge now rejects vertical movement before recognition while preserving horizontal reveal/hide thresholds and nested task gestures. iOS 17 retains its existing gesture path. New accessibility grouping is limited to Active; Completed keeps its original structure. Regression coverage explicitly begins inside task text and checks fast vertical scrolling, horizontal actions on both pages, taps and stationary long-press details, and unchanged completion.
+
+The [performance gap analysis](PERFORMANCE.md#v0-6-2-drag-gap-analysis) records implemented work and deferred cache/persistence investigations. A controlled ordinary drag produced 11 movement callbacks in both builds; list-body evaluations fell from 14 to 5. Temporary instrumentation was removed. This measures reduced view work, not phone frame rate, energy or memory improvement.
+
+### Validation
+
+| Check | Result | Local evidence |
+| --- | --- | --- |
+| New task-height/lower-edge drop cases, current iOS | Three passed, including larger accessibility text | `/tmp/planning-062-new-targets-current.xcresult` |
+| Final current-iOS Release unit suite | 78 passed, including existing benchmarks, cache freshness/purge, rollback and reminders | `/tmp/planning-062-final-release-unit.xcresult` |
+| Equivalent ordinary drag and continued progress workflow with temporary counters | Passed; counters removed before release verification | `/tmp/planning-062-drag-baseline.xcresult`, `/tmp/planning-062-progress-drag-baseline.xcresult`, `/tmp/planning-062-drag-optimized.xcresult` |
+| Final uninstrumented iPhone device-SDK Release build, signing disabled | Passed | `/tmp/planning-062-final-clean-release.log` |
+| Final current-iOS navigation, progress and usability suites | All 44 scenarios passed across isolated suites: 20 + 16 + 8 | `/tmp/planning-062-final-navigation.xcresult`, `/tmp/planning-062-final-progress.xcresult`, `/tmp/planning-062-final-usability.xcresult` |
+| Final narrow iOS 17 matrix | Six passed: standard reorder, lower-edge targets, larger text and scrolled orphan/group transfers; the separate interaction follow-up below covers the seventh unique scenario | `/tmp/planning-062-final-ios17-ui.xcresult` |
+| Stationary long-press, iOS 17 | Passed on both task pages alongside row-start scroll and horizontal actions | `/tmp/planning-062-longpress-ios17.xcresult` |
+| Directional routing's neighboring current-iOS scenarios | Five passed | `/tmp/planning-062-directional-current.xcresult` |
+| Final current-iOS drag/row interaction follow-up | Both passed, including stationary long-press details on both task pages | `/tmp/planning-062-final-counter-and-longpress.xcresult` |
+| Final matching-destination counter comparison | Baseline 14 list evaluations/11 callbacks; final 5 evaluations/10 callbacks | `/tmp/planning-062-final-counter-baseline.xcresult`, `/tmp/planning-062-final-body-counts.log` |
+
+All 44 current-iOS scenarios pass after the correction; the original scroll assertions remain strict. The long-press follow-up extends the same interaction case on both OS generations. Larger-text screenshots have been inspected. Callback delivery differed slightly in the final counter replay, so the record distinguishes view evaluations from event counts and makes no timing claim. Physical-device Release profiling with matched data and Low Power Mode off/on, diagonal/control-origin and simultaneous touches, system interruption feel, VoiceOver and haptics remain device checks; simulator layout/body counts cannot establish those results.
+
+### Retained investigation evidence
+
+The initial current-iOS run passed 41/43 cases; two ordinary Completed scrolling checks failed intermittently. The original six-case baseline passed, but an extended ten-case run of unchanged 0.6.1 reproduced the same failure once. Narrowing accessibility grouping did not eliminate it. Tracing recorded a vertical row-swipe callback while native offset stayed at zero; successful gestures correctly moved content and compacted headings. Temporary tracing and an unproven sizing workaround were removed. Original assertions and row-body scrolling remain in the final tests.
+
+Artifacts: `/tmp/planning-062-current-ui.xcresult`, `/tmp/planning-062-scroll-isolated.xcresult`, `/tmp/planning-062-scroll-baseline.xcresult`, `/tmp/planning-062-scroll-baseline-repeated.xcresult`, `/tmp/planning-062-narrowed-scroll.xcresult`, `/tmp/planning-062-scroll-trace.xcresult`, `/tmp/planning-062-scroll-geometry.log` and `/tmp/planning-062-scroll-trace-attachments/`. A subsequent serial verification was interrupted to split final navigation, progress and usability classes across isolated simulators; that interrupted bundle is not counted as a passing suite.
+
+Earlier passing unit/build evidence remains at `/tmp/planning-062-release-unit.xcresult` and `/tmp/planning-062-release.log`; the table uses the final uninstrumented source checks. Pushed-head subagent reviews covered rendering/gesture behavior, data/rollback/reminder invariants and test/evidence quality. They found no blocking source issue, requested the now-passing stationary long-press coverage, and corrected stale empty-target wording. The PR records the final reviewed head before its matching-head squash merge.

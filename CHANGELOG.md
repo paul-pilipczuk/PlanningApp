@@ -2,6 +2,15 @@
 
 All notable user-facing changes to this project are documented here.
 
+## [0.6.2] - 2026-11-18
+
+- Match empty Active group and progress drop areas to standard task-card heights, including shared Dynamic Type scaling.
+- Keep populated headings compact and accept drops across the enlarged destination.
+- Isolate continuous drag-preview movement from the task list and remove redundant source lookups and geometry allocations.
+- Keep another task's touch from moving, finishing, or cancelling an existing drag.
+- Prevent horizontal task-swipe recognition from consuming vertical scrolls on iOS 18 and later; retain the iOS 17 gesture path.
+- Record the performance gap analysis, measured view-update reduction, and device-profiling follow-ups.
+
 ## [0.6.1] - 2026-11-18
 
 - Fix iOS 17 drag preview and drop-target geometry, including tasks with missing saved group references.

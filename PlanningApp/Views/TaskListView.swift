@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct TaskListView: View {
     let tab: PlanningTab
@@ -21,10 +22,12 @@ struct TaskListView: View {
     @State private var dragGroupID: UUID?
     @State private var pendingDrop: PendingTaskDrop?
     @State private var dragPreviewFrame: CGRect?
-    @State private var dragTranslation: CGSize = .zero
+    // Only the lifted preview observes continuous movement, not the lazy list.
+    @State private var dragPosition = TaskDragPosition()
     @State private var hasPendingReorder = false
     @State private var reorderFeedback = 0
     @State private var taskFrames = TaskFrameCache()
+    @ScaledMetric(relativeTo: .body) private var minimumCardContentHeight = TaskCardMetrics.minimumContentHeight
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -46,13 +49,13 @@ struct TaskListView: View {
         }
         .onPreferenceChange(TaskListOriginPreferenceKey.self) { taskFrames.origin = $0 }
         .onPreferenceChange(TaskFramePreferenceKey.self) { taskFrames.rows = $0 }
-        .onPreferenceChange(ProgressFramePreferenceKey.self) { taskFrames.replaceProgressFrames($0) }
+        .onPreferenceChange(ProgressFramePreferenceKey.self) { taskFrames.dropZones = $0 }
         .sensoryFeedback(.selection, trigger: reorderFeedback) { _, _ in preferences.hapticFeedback }
         .onChange(of: tab) { _, _ in
             cancelDragging()
             taskShowingDeleteID = nil
             taskFrames.rows = [:]
-            taskFrames.dropZones = []
+            taskFrames.dropZones = [:]
         }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { cancelDragging() }
@@ -99,7 +102,11 @@ struct TaskListView: View {
                         switch row {
                         case .group(let group, let isEmpty): groupHeader(group, isEmpty: isEmpty)
                         case .progress(let groupID, let marker, let isEmpty): progressHeader(marker, groupID: groupID, isEmpty: isEmpty).padding(.leading, 8)
-                        case .task(let task): taskRow(task).padding(.leading, taskStore.progressConfiguration.isEnabled ? 8 : 0)
+                        case .task(let task):
+                            taskRow(task)
+                                .accessibilityElement(children: .contain)
+                                .accessibilityIdentifier("task.card.\(task.title)")
+                                .padding(.leading, taskStore.progressConfiguration.isEnabled ? 8 : 0)
                         }
                     }
                 } else {
@@ -132,7 +139,7 @@ struct TaskListView: View {
                 .accessibilityIdentifier("task.groupHeader.\(group?.id.uuidString ?? "general")")
             if isEmpty { Text("Drag a task here").font(.caption).foregroundStyle(.secondary) }
         }
-        .frame(maxWidth: .infinity, minHeight: isEmpty ? 44 : 28, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: isEmpty ? emptyDropHeight : 28, alignment: .leading)
         .padding(.top, 4)
         .background {
             if pendingDrop?.isGroupHeading == true && pendingDrop?.groupID == group?.id {
@@ -145,6 +152,8 @@ struct TaskListView: View {
                     value: [ProgressDropTarget(groupID: group?.id, markerID: nil): expandedDropFrame(proxy.frame(in: .global))])
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("task.groupDrop.\(group?.id.uuidString ?? "general")")
     }
 
     private func progressHeader(_ marker: ProgressMarker, groupID: UUID?, isEmpty: Bool) -> some View {
@@ -155,7 +164,7 @@ struct TaskListView: View {
             if isEmpty { Text("Drag a task here").font(.caption) }
         }
         .foregroundStyle(.secondary)
-        .frame(maxWidth: .infinity, minHeight: isEmpty ? 44 : 24, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: isEmpty ? emptyDropHeight : 24, alignment: .leading)
         .padding(.horizontal, isEmpty ? 10 : 0)
         .background {
             let isTarget = pendingDrop?.isGroupHeading == false && pendingDrop?.groupID == groupID && pendingDrop?.markerID == marker.id
@@ -169,6 +178,13 @@ struct TaskListView: View {
                     value: [ProgressDropTarget(groupID: groupID, markerID: marker.id): expandedDropFrame(proxy.frame(in: .global))])
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("progress.drop.\(groupID?.uuidString ?? "general").\(marker.id)")
+    }
+
+    private var emptyDropHeight: CGFloat {
+        TaskCardMetrics.minimumHeight(contentHeight: minimumCardContentHeight,
+                                      showsProgress: taskStore.progressConfiguration.isEnabled)
     }
 
     /// Compact headings still receive a forgiving 44-point vertical drop region.
@@ -230,15 +246,24 @@ struct TaskListView: View {
                 onDragChanged: { drag in
                     guard tab == .active else { return }
                     beginDragging(task)
-                    dragTranslation = drag.translation
-                    updateTaskOrder(for: drag.location)
-                }, onDragEnded: { _ in endDragging() }, onDragCancelled: cancelDragging)
+                    guard draggedTaskID == task.id else { return }
+                    dragPosition.translation = drag.translation
+                    updateTaskOrder(for: drag.location, source: task)
+                }, onDragEnded: { _ in
+                    if draggedTaskID == task.id { endDragging() }
+                }, onDragCancelled: {
+                    if draggedTaskID == task.id { cancelDragging() }
+                })
             .background {
                 if tab == .active { taskFrameReader(for: task) }
             }
             .accessibilityAction(named: "Task details") { taskToEdit = task }
             .opacity(draggedTaskID == task.id ? 0 : 1)
-            .simultaneousGesture(swipeGesture(for: task))
+            .modifier(TaskRowSwipe { translation in
+                guard abs(translation.width) > abs(translation.height) else { return }
+                if translation.width < -45 { taskShowingDeleteID = task.id }
+                else if translation.width > 45 { taskShowingDeleteID = nil }
+            })
     }
 
     private func taskFrameReader(for task: TaskItem) -> some View {
@@ -254,15 +279,8 @@ struct TaskListView: View {
         if let draggedTaskID, let task = taskStore.activeTasks(in: dragGroupID).first(where: { $0.id == draggedTaskID }), let dragPreviewFrame {
             TaskRow(task: previewTask(task), isDeleteVisible: false, onComplete: {}, onTaskTap: {}, onLongPress: {}, onConfigure: {}, onCopy: nil, onArchive: nil, onDelete: {}, onDragChanged: { _ in }, onDragEnded: { _ in }, onDragCancelled: {})
                 .frame(width: dragPreviewFrame.width).scaleEffect(1.035).shadow(color: .black.opacity(0.45), radius: 14, y: 8)
-                .offset(x: dragPreviewFrame.minX - taskFrames.origin.x, y: dragPreviewFrame.minY - taskFrames.origin.y + dragTranslation.height).allowsHitTesting(false).accessibilityHidden(true)
-        }
-    }
-
-    private func swipeGesture(for task: TaskItem) -> some Gesture {
-        DragGesture(minimumDistance: 20).onEnded { value in
-            guard abs(value.translation.width) > abs(value.translation.height) else { return }
-            if value.translation.width < -45 { taskShowingDeleteID = task.id }
-            else if value.translation.width > 45 { taskShowingDeleteID = nil }
+                .modifier(TaskDragPreviewPosition(position: dragPosition, frame: dragPreviewFrame, frames: taskFrames))
+                .allowsHitTesting(false).accessibilityHidden(true)
         }
     }
 
@@ -277,9 +295,8 @@ struct TaskListView: View {
         hasPendingReorder = false
     }
 
-    private func updateTaskOrder(for location: CGPoint) {
-        guard let draggedTaskID else { return }
-        guard let current = taskStore.activeTasks(in: dragGroupID).first(where: { $0.id == draggedTaskID }) else { return }
+    private func updateTaskOrder(for location: CGPoint, source current: TaskItem) {
+        guard let draggedTaskID, current.id == draggedTaskID else { return }
         let currentMarker = taskStore.progressConfiguration.isEnabled ? taskStore.progressMarker(for: current).id : nil
         if let target = taskFrames.dropTarget(at: location) {
             let markerID = target.markerID ?? currentMarker
@@ -362,7 +379,7 @@ struct TaskListView: View {
     }
 
     private func clearDragging() {
-        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { draggedTaskID = nil; dragGroupID = nil; pendingDrop = nil; dragPreviewFrame = nil; dragTranslation = .zero }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { draggedTaskID = nil; dragGroupID = nil; pendingDrop = nil; dragPreviewFrame = nil; dragPosition.translation = .zero }
         hasPendingReorder = false
     }
 
@@ -374,18 +391,98 @@ struct TaskListView: View {
 
 }
 
+/// Reject vertical movement before the row swipe can compete with scrolling.
+private struct TaskRowSwipe: ViewModifier {
+    let onEnded: (CGSize) -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.gesture(HorizontalTaskSwipe(onEnded: onEnded))
+        } else {
+            content.simultaneousGesture(DragGesture(minimumDistance: 20).onEnded { value in
+                onEnded(value.translation)
+            })
+        }
+    }
+}
+
+@available(iOS 18.0, *)
+private struct HorizontalTaskSwipe: UIGestureRecognizerRepresentable {
+    let onEnded: (CGSize) -> Void
+
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIGestureRecognizer(context: Context) -> UIPanGestureRecognizer {
+        let recognizer = UIPanGestureRecognizer()
+        recognizer.maximumNumberOfTouches = 1
+        recognizer.cancelsTouchesInView = false
+        recognizer.delegate = context.coordinator
+        return recognizer
+    }
+
+    func handleUIGestureRecognizerAction(_ recognizer: UIPanGestureRecognizer, context: Context) {
+        guard recognizer.state == .ended else { return }
+        let translation = recognizer.translation(in: recognizer.view)
+        onEnded(CGSize(width: translation.x, height: translation.y))
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard let recognizer = gestureRecognizer as? UIPanGestureRecognizer else { return false }
+            let velocity = recognizer.velocity(in: recognizer.view)
+            return abs(velocity.x) > abs(velocity.y)
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            true
+        }
+    }
+}
+
+/// Retained by the list but observed only by the lifted preview.
+private final class TaskDragPosition: ObservableObject {
+    @Published var translation: CGSize = .zero
+}
+
+private struct TaskDragPreviewPosition: ViewModifier {
+    @ObservedObject var position: TaskDragPosition
+    let frame: CGRect
+    let frames: TaskFrameCache
+
+    func body(content: Content) -> some View {
+        content.offset(x: frame.minX - frames.origin.x,
+                       y: frame.minY - frames.origin.y + position.translation.height)
+    }
+}
+
+private enum TaskCardMetrics {
+    static let minimumContentHeight: CGFloat = 44
+    static let padding: CGFloat = 14
+    static let spacing: CGFloat = 8
+    static let progressHeight: CGFloat = 4
+
+    static func minimumHeight(contentHeight: CGFloat, showsProgress: Bool) -> CGFloat {
+        max(minimumContentHeight, contentHeight) + padding * 2 + (showsProgress ? spacing + progressHeight : 0)
+    }
+}
+
 /// Geometry is an input to drag handling, not rendered state. Keep measurements
 /// without invalidating the entire list every time the scroll position changes.
 private final class TaskFrameCache {
     var origin: CGPoint = .zero
     var rows: [UUID: TaskRowGeometry] = [:]
     struct DropZone { let groupID: UUID?; let markerID: UUID?; let frame: CGRect }
-    var dropZones: [DropZone] = []
+    var dropZones: [ProgressDropTarget: CGRect] = [:]
 
     /// Expanded header regions can touch; choose the nearest heading deterministically.
     func dropTarget(at point: CGPoint) -> DropZone? {
         var nearest: DropZone?
-        for zone in dropZones where zone.frame.contains(point) {
+        for (target, frame) in dropZones where frame.contains(point) {
+            let zone = DropZone(groupID: target.groupID, markerID: target.markerID, frame: frame)
             if let current = nearest {
                 let distance = abs(zone.frame.midY - point.y)
                 let previous = abs(current.frame.midY - point.y)
@@ -393,10 +490,6 @@ private final class TaskFrameCache {
             } else { nearest = zone }
         }
         return nearest
-    }
-
-    func replaceProgressFrames(_ frames: [ProgressDropTarget: CGRect]) {
-        dropZones = frames.map { DropZone(groupID: $0.key.groupID, markerID: $0.key.markerID, frame: $0.value) }
     }
 }
 
@@ -448,9 +541,10 @@ private struct TaskRow: View {
     @GestureState private var isTouchActive = false
     @State private var touchBeganAt: Date?
     @State private var isReordering = false
+    @ScaledMetric(relativeTo: .body) private var minimumContentHeight = TaskCardMetrics.minimumContentHeight
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: TaskCardMetrics.spacing) {
             HStack(spacing: 12) {
                 Button(action: onComplete) {
                     Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
@@ -499,9 +593,11 @@ private struct TaskRow: View {
                     .accessibilityLabel("Details for \(task.title)")
                 }
             }
-            if taskStore.progressConfiguration.isEnabled { TaskProgressIndicator(task: task) }
+            if taskStore.progressConfiguration.isEnabled {
+                TaskProgressIndicator(task: task).frame(height: TaskCardMetrics.progressHeight)
+            }
         }
-        .padding(14)
+        .padding(TaskCardMetrics.padding)
         .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
         .onChange(of: isTouchActive) { _, isActive in
             if !isActive { cancelInteraction() }
@@ -567,7 +663,7 @@ private struct TaskRow: View {
                 Text(task.description).lineLimit(1).font(.subheadline).foregroundStyle(.secondary)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: max(TaskCardMetrics.minimumContentHeight, minimumContentHeight), alignment: .leading)
         .contentShape(Rectangle())
     }
 

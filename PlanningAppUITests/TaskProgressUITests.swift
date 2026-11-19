@@ -293,6 +293,89 @@ final class TaskProgressUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["task.progressLabel"].label, "To do")
     }
 
+    func testEmptyGroupDropTargetMatchesTaskCardWithProgressDisabled() {
+        let target = dropArea("task.groupDrop.9AF80E3E-F57D-5B52-9F0C-5BB30350F75F")
+        let card = dropArea("task.card.Plan the week")
+        XCTAssertTrue(target.waitForExistence(timeout: 3))
+        XCTAssertTrue(card.exists)
+        XCTAssertGreaterThanOrEqual(target.frame.height, card.frame.height - 1)
+        XCTAssertLessThanOrEqual(target.frame.height, card.frame.height + 5,
+                                 "The empty group should match a task card, allowing its existing top inset")
+
+        dragTaskNearBottom(of: target)
+        app.buttons["Task details: Plan the week"].tap()
+        XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["task.group"].label.contains("Personal"))
+        XCTAssertFalse(app.sliders["task.progressSlider"].exists)
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.buttons["Complete Plan the week"].exists)
+    }
+
+    func testEmptyProgressDropTargetMatchesTaskCardAndAcceptsLowerEdgeDrop() {
+        enableProgress()
+        showActive()
+        let target = dropArea("progress.drop.2AD6EE26-6CE2-599C-A474-B493C1AFD50A.00000000-0000-0000-0000-000000000002")
+        let card = dropArea("task.card.Plan the week")
+        XCTAssertTrue(target.waitForExistence(timeout: 3))
+        XCTAssertTrue(card.exists)
+        XCTAssertEqual(target.frame.height, card.frame.height, accuracy: 1,
+                       "An empty progress lane should have the same height as a standard progress task")
+
+        dragTaskNearBottom(of: target)
+        XCTAssertTrue(app.buttons["Complete Plan the week"].exists)
+        app.buttons["Task details: Plan the week"].tap()
+        XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["task.group"].label.contains("This week"))
+        XCTAssertEqual(app.staticTexts["task.progressLabel"].label, "In progress")
+    }
+
+    func testEmptyProgressDropAreaRemainsUsableAtAccessibilityTextSize() {
+        app.terminate()
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"]
+        app.launch()
+        // One active card leaves room for its complete drop region on a narrow phone.
+        app.buttons["Complete Review the project notes"].tap()
+        enableProgress()
+        showActive()
+        let target = dropArea("progress.drop.2AD6EE26-6CE2-599C-A474-B493C1AFD50A.00000000-0000-0000-0000-000000000002")
+        XCTAssertTrue(target.waitForExistence(timeout: 3))
+        XCTAssertGreaterThanOrEqual(target.frame.height, 84)
+        let label = app.staticTexts["progress.section.2AD6EE26-6CE2-599C-A474-B493C1AFD50A.00000000-0000-0000-0000-000000000002"]
+        XCTAssertGreaterThanOrEqual(label.frame.minY, target.frame.minY)
+        XCTAssertLessThanOrEqual(label.frame.maxY, target.frame.maxY)
+
+        dragTaskNearBottom(of: target)
+        XCTAssertTrue(app.buttons["Complete Plan the week"].exists)
+        let bar = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Progress for Plan the week")).firstMatch
+        XCTAssertEqual(bar.value as? String, "In progress")
+        screenshot("Task-sized empty progress drop region at accessibility text size")
+    }
+
+    private func dropArea(_ identifier: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    private func dragTaskNearBottom(of target: XCUIElement) {
+        let source = app.buttons["Task details: Plan the week"]
+        let list = app.scrollViews["taskList.active"]
+        let navigation = app.otherElements["navigation.bar"]
+        for _ in 0..<4 where target.frame.maxY > navigation.frame.minY - 8 {
+            list.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.75))
+                .press(forDuration: 0.05, thenDragTo: list.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.67)),
+                       withVelocity: .slow, thenHoldForDuration: 0.3)
+        }
+        XCTAssertTrue(source.isHittable)
+        XCTAssertTrue(target.isHittable)
+        XCTAssertLessThan(target.frame.maxY, navigation.frame.minY,
+                          "Prepare the full target above navigation before beginning the task drag")
+        let origin = app.coordinate(withNormalizedOffset: .zero)
+        let destination = origin.withOffset(CGVector(dx: source.frame.midX - app.frame.minX,
+                                                    dy: target.frame.maxY - 8 - app.frame.minY))
+        source.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.15, thenDragTo: destination,
+                   withVelocity: .slow, thenHoldForDuration: 0.3)
+    }
+
     func testDraggingBetweenTaskGroupsMovesTheTaskAndAppliesTheTargetLabel() {
         enableProgress()
         showActive()
