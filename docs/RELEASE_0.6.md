@@ -4,6 +4,7 @@ The 0.6 series improves task usability and introduces optional task progress. Th
 
 ## Versions
 
+- [0.6.1 — iOS 17 drag geometry](#v0-6-1)
 - [0.6.0 — Task usability and optional progress](#v0-6-0)
 
 <a id="v0-6-0"></a>
@@ -233,3 +234,32 @@ Build 13's full 38-scenario UI evidence is retained above. Build 14 repeats the 
 **Known follow-up: narrow iOS 17 simulator orphan-pair continuation.** On the tested iPhone SE/iOS 17.2 layout, continuing a held drag between tasks with missing saved group references still does not apply the next progress label. The tasks remain intact. This is a narrow legacy-reference interaction, not a general task-editing or persistence failure. The owner reported successful phone testing and readiness to use follow-up patches; this remaining edge is retained for a 0.6.x patch rather than represented as resolved.
 
 The regression uses a strict `XCTExpectFailure` around only the failed progress-application assertion, limited to iOS 17 at the tested 375×667 layout. Earlier geometry and task checks remain ordinary assertions. An unexpected pass requires removing the known-failure exception, following [XCTest's expected-failure mechanism](https://developer.apple.com/documentation/xctest/expected-failures). The details-slider alternative is verified in the same test: both tasks remain present, opening details shows the unchanged label, and moving the slider then saving applies In progress successfully. The original failing bundles and recording are retained; no console filtering or speculative state workaround remains in app code.
+
+
+<a id="v0-6-1"></a>
+
+## 0.6.1 — iOS 17 drag geometry
+
+November 18, 2026 · Version 0.6.1, build 15
+
+Fix the narrow iOS 17 drag regression documented in 0.6.0. A held task could disappear from its visible location and fail to reach another progress subgroup even though its record and raw group lookup remained valid. Runtime tracing measured the cached named-space source frame at y812 on a 667-point display while the actual visible row began around y302. The lifted preview was rendered offscreen and the same incorrect frames prevented reorder/drop thresholds from matching the touch.
+
+Rows, group/progress drop regions, and drag events now use the same global coordinate space. A single cached list origin converts only the lifted preview back into local placement. Origin updates follow compact-header layout without publishing per-pixel state. The change retains lazy rendering, existing gestures/appearance, group and progress semantics, stable task identities, atomic saves/rollback, and reminder behavior. No persistence format, package, timer, or full-list transform is added.
+
+The orphan-pair test now requires a successful continued drag and label change on every tested OS. The scoped expected-failure exception and fallback-only branch are removed. An additional large-text/scrolled test verifies the compact-header origin; larger text ensures the fixture can scroll on tall phones too. The historical 0.6.0 failure record above is retained.
+
+Temporary tracing was removed after diagnosis. Physical-device gesture feel and Low Power Mode comparisons remain distinct from simulator layout/correctness checks. This fix does not claim new frame-rate, battery, or memory improvements.
+
+
+### Validation
+
+| Check | Result | Local evidence |
+| --- | --- | --- |
+| Original narrow iOS 17 regression, exception removed | Passed | `/tmp/planning-061-global-geometry.xcresult` |
+| Narrow iOS 17 affected UI matrix | Seven passed | `/tmp/planning-061-ios17.xcresult` |
+| Current-iOS affected UI matrix | Six ordinary passes; fitting-fixture scroll assertion superseded by passing large-text follow-up | `/tmp/planning-061-current.xcresult` |
+| Final large-text scrolled-header regression, both OS versions | Passed on each | `/tmp/planning-061-scrolled-ios17.xcresult`, `/tmp/planning-061-scrolled-current.xcresult` |
+| Full unit suite, current iOS | 78 passed | `/tmp/planning-061-unit.xcresult` |
+| iPhone device-SDK Release build, signing disabled | Passed | `/tmp/planning-061-release.log` |
+
+Together the runs cover all seven targeted scenarios on each OS: default reordering, group/progress/orphan-target transfers, direct orphan-pair continuation, scrolled continuation, and shared compact headers in both appearances. The final scrolled fixture uses larger text because the small fixture fits a tall phone and correctly does not collapse navigation. No assertions were relaxed. An agent reviewed coordinate consistency and cache publication/per-frame costs; no static blocker was found. The expected-failure exception is absent from the final regression.

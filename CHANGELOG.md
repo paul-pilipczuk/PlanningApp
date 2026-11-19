@@ -2,6 +2,12 @@
 
 All notable user-facing changes to this project are documented here.
 
+## [0.6.1] - 2026-11-18
+
+- Fix iOS 17 drag preview and drop-target geometry, including tasks with missing saved group references.
+- Keep coordinates aligned after scrolling and compact-header transitions.
+- Remove the expected-failure exception and require successful subgroup transfers in regression coverage.
+
 ## [0.6.0] - 2026-11-17
 
 - Add optional task progress, disabled by default, with editable To do and In progress labels.
