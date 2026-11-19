@@ -162,3 +162,8 @@ The post-push review adds `-orphaned-pair` to the orphan fixture: both active ta
 
 
 The narrow iOS17/375×667 continued orphan-pair drag currently has one documented strict expected failure, limited to its progress-application assertion. Other assertions and platforms remain normal checks; an unexpected pass flags removal of the exception. Do not count this as a fixed interaction or silently skip it. Retain failing artifacts and verify the details-slider alternative while tracking the patch follow-up.
+
+
+## 0.6.1 iOS 17 geometry regression
+
+The formerly expected orphan-pair continuation failure is now an ordinary passing requirement. Cover direct dragging and a large-text fixture scrolled into compact-header mode, retaining assertions for source/peer visibility, applied bar/slider label, and unchanged completion. Larger text makes scrollability explicit on tall devices; a fitting page must not be forced to collapse navigation. Repeat neighboring default reordering, progress-section transfers, cross-group/orphan targets, and shared headers on iOS 17 and current iOS. Row/drop/event geometry shares global coordinates; the preview subtracts the cached list origin. Preserve 0.6.0 evidence as history rather than rewriting failed interactions as prior passes.

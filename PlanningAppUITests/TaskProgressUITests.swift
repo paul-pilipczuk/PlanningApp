@@ -69,11 +69,12 @@ final class TaskProgressUITests: XCTestCase {
         add(attachment)
     }
 
-    private func launchOrphanedTask(progressEnabled: Bool, paired: Bool = false) {
+    private func launchOrphanedTask(progressEnabled: Bool, paired: Bool = false, largeText: Bool = false) {
         app.terminate()
         app.launchArguments += ["-orphaned-data"]
         if progressEnabled { app.launchArguments += ["-progress-enabled"] }
         if paired { app.launchArguments += ["-orphaned-pair"] }
+        if largeText { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"] }
         app.launch()
         XCTAssertTrue(app.buttons["Task details: Plan the week"].waitForExistence(timeout: 3))
     }
@@ -158,7 +159,15 @@ final class TaskProgressUITests: XCTestCase {
     }
 
     func testOrphanedPairDragSurvivesReorderingBeforeChangingProgressOnRelease() {
-        launchOrphanedTask(progressEnabled: true, paired: true)
+        exerciseOrphanedPairDrag(afterScrolling: false)
+    }
+
+    func testOrphanedPairDragAfterScrollingUsesCurrentHeaderGeometry() {
+        exerciseOrphanedPairDrag(afterScrolling: true)
+    }
+
+    private func exerciseOrphanedPairDrag(afterScrolling: Bool) {
+        launchOrphanedTask(progressEnabled: true, paired: true, largeText: afterScrolling)
         let source = app.buttons["Task details: Plan the week"]
         let peer = app.buttons["Task details: Review the project notes"]
         let target = app.staticTexts["progress.section.general.00000000-0000-0000-0000-000000000002"]
@@ -166,6 +175,12 @@ final class TaskProgressUITests: XCTestCase {
         XCTAssertTrue(target.waitForExistence(timeout: 3))
         let list = app.scrollViews["taskList.active"]
         let navigation = app.otherElements["navigation.bar"]
+        if afterScrolling {
+            list.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.8))
+                .press(forDuration: 0.05, thenDragTo: list.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5)),
+                       withVelocity: .slow, thenHoldForDuration: 0.3)
+            XCTAssertTrue(app.buttons["navigation.expand"].waitForExistence(timeout: 3))
+        }
         for _ in 0..<4 where target.frame.maxY > navigation.frame.minY - 8 {
             // Scroll the margin so preparation cannot start a task drag.
             list.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.75))
@@ -196,31 +211,6 @@ final class TaskProgressUITests: XCTestCase {
         screenshot("Orphan pair after continuing a vertical drag")
         let applied = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "In progress"), object: bar)
         let result = XCTWaiter.wait(for: [applied], timeout: 3)
-        if ProcessInfo.processInfo.operatingSystemVersion.majorVersion == 17,
-           app.frame.width == 375, app.frame.height == 667 {
-            // Keep this exact known gap visible; an unexpected pass requires
-            // removing the exception when the iOS 17 follow-up is fixed.
-            let previousContinueAfterFailure = continueAfterFailure
-            continueAfterFailure = true
-            XCTExpectFailure("Known narrow iOS 17 orphan-pair drag gap; see docs/RELEASE_0.6.md#v0-6-0-pushed-review") {
-                XCTAssertEqual(result, .completed)
-            }
-            continueAfterFailure = previousContinueAfterFailure
-            if result != .completed {
-                XCTAssertTrue(app.buttons["Complete Plan the week"].exists)
-                XCTAssertTrue(app.buttons["Complete Review the project notes"].exists)
-                source.tap()
-                XCTAssertTrue(app.navigationBars["Task Details"].waitForExistence(timeout: 3))
-                XCTAssertEqual(app.staticTexts["task.progressLabel"].label, "To do")
-                app.sliders["task.progressSlider"].adjust(toNormalizedSliderPosition: 1)
-                app.buttons["task.save"].tap()
-                let saved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "In progress"), object: bar)
-                XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 3), .completed)
-                XCTAssertTrue(source.exists)
-                XCTAssertTrue(peer.exists)
-                return
-            }
-        }
         XCTAssertEqual(result, .completed)
         XCTAssertTrue(app.buttons["Complete Plan the week"].exists)
         XCTAssertTrue(app.buttons["Complete Review the project notes"].exists)

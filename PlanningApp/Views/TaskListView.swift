@@ -37,7 +37,14 @@ struct TaskListView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .systemBackground))
-        .coordinateSpace(name: "taskList")
+        // Keep touch locations and measured frames in one space. Resolve only
+        // preview placement locally, avoiding iOS 17 lazy named-space offsets.
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(key: TaskListOriginPreferenceKey.self, value: proxy.frame(in: .global).origin)
+            }
+        }
+        .onPreferenceChange(TaskListOriginPreferenceKey.self) { taskFrames.origin = $0 }
         .onPreferenceChange(TaskFramePreferenceKey.self) { taskFrames.rows = $0 }
         .onPreferenceChange(ProgressFramePreferenceKey.self) { taskFrames.replaceProgressFrames($0) }
         .sensoryFeedback(.selection, trigger: reorderFeedback) { _, _ in preferences.hapticFeedback }
@@ -135,7 +142,7 @@ struct TaskListView: View {
         .background {
             GeometryReader { proxy in
                 Color.clear.preference(key: ProgressFramePreferenceKey.self,
-                    value: [ProgressDropTarget(groupID: group?.id, markerID: nil): expandedDropFrame(proxy.frame(in: .named("taskList")))])
+                    value: [ProgressDropTarget(groupID: group?.id, markerID: nil): expandedDropFrame(proxy.frame(in: .global))])
             }
         }
     }
@@ -159,7 +166,7 @@ struct TaskListView: View {
         .background {
             GeometryReader { proxy in
                 Color.clear.preference(key: ProgressFramePreferenceKey.self,
-                    value: [ProgressDropTarget(groupID: groupID, markerID: marker.id): expandedDropFrame(proxy.frame(in: .named("taskList")))])
+                    value: [ProgressDropTarget(groupID: groupID, markerID: marker.id): expandedDropFrame(proxy.frame(in: .global))])
             }
         }
     }
@@ -237,7 +244,7 @@ struct TaskListView: View {
     private func taskFrameReader(for task: TaskItem) -> some View {
         GeometryReader { proxy in
             Color.clear.preference(key: TaskFramePreferenceKey.self,
-                value: [task.id: TaskRowGeometry(frame: proxy.frame(in: .named("taskList")), groupID: taskStore.displayGroupID(for: task),
+                value: [task.id: TaskRowGeometry(frame: proxy.frame(in: .global), groupID: taskStore.displayGroupID(for: task),
                     storedGroupID: task.groupID,
                     markerID: taskStore.progressConfiguration.isEnabled ? taskStore.progressMarker(for: task).id : nil)])
         }
@@ -247,7 +254,7 @@ struct TaskListView: View {
         if let draggedTaskID, let task = taskStore.activeTasks(in: dragGroupID).first(where: { $0.id == draggedTaskID }), let dragPreviewFrame {
             TaskRow(task: previewTask(task), isDeleteVisible: false, onComplete: {}, onTaskTap: {}, onLongPress: {}, onConfigure: {}, onCopy: nil, onArchive: nil, onDelete: {}, onDragChanged: { _ in }, onDragEnded: { _ in }, onDragCancelled: {})
                 .frame(width: dragPreviewFrame.width).scaleEffect(1.035).shadow(color: .black.opacity(0.45), radius: 14, y: 8)
-                .offset(x: dragPreviewFrame.minX, y: dragPreviewFrame.minY + dragTranslation.height).allowsHitTesting(false).accessibilityHidden(true)
+                .offset(x: dragPreviewFrame.minX - taskFrames.origin.x, y: dragPreviewFrame.minY - taskFrames.origin.y + dragTranslation.height).allowsHitTesting(false).accessibilityHidden(true)
         }
     }
 
@@ -370,6 +377,7 @@ struct TaskListView: View {
 /// Geometry is an input to drag handling, not rendered state. Keep measurements
 /// without invalidating the entire list every time the scroll position changes.
 private final class TaskFrameCache {
+    var origin: CGPoint = .zero
     var rows: [UUID: TaskRowGeometry] = [:]
     struct DropZone { let groupID: UUID?; let markerID: UUID?; let frame: CGRect }
     var dropZones: [DropZone] = []
@@ -512,7 +520,7 @@ private struct TaskRow: View {
                 .onLongPressGesture(perform: onLongPress)
         } else {
             taskContent
-                .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .named("taskList"))
+                .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .global)
                 .updating($isTouchActive) { _, isActive, _ in isActive = true }
                 .onChanged { value in
                     guard scenePhase == .active else { cancelInteraction(); return }
@@ -563,4 +571,9 @@ private struct TaskRow: View {
         .contentShape(Rectangle())
     }
 
+}
+
+private struct TaskListOriginPreferenceKey: PreferenceKey {
+    static var defaultValue: CGPoint = .zero
+    static func reduce(value: inout CGPoint, nextValue: () -> CGPoint) { value = nextValue() }
 }
